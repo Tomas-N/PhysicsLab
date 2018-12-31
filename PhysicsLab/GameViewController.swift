@@ -72,10 +72,9 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         else {
             //
         }
- 
     }
-    
 
+    
     func physicsWorld(_ world: SCNPhysicsWorld, didUpdate contact: SCNPhysicsContact) {
         // Not used
         debugPrint("!")
@@ -94,6 +93,13 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         }
     
        // if (contact.collisionImpulse > 0.2) {
+        
+        let particleSystem = SCNParticleSystem(named: "ParticleReactor1", inDirectory: nil)
+        let systemNode = SCNNode()
+        systemNode.addParticleSystem(particleSystem!)
+        systemNode.position = contact.nodeA.presentation.position
+        scnScene.rootNode.addChildNode(systemNode)
+
             debugPrint("-----")
             debugPrint(boxNode.position)
             boxNode.scale = SCNVector3(boxNode.scale.x * 0.5, boxNode.scale.y * 0.5, boxNode.scale.y * 0.5)
@@ -106,6 +112,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
             
             // boxNode.physicsBody?.clearAllForces()
             let newNode: SCNNode = boxNode.clone()
+            newNode.position = boxNode.presentation.position
             debugPrint(boxNode.position)
             debugPrint(newNode.position)
             // boxNode.physicsBody?.applyForce(, asImpulse: <#T##Bool#>)
