@@ -38,63 +38,51 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
         scnView.addGestureRecognizer(tapGesture)
         
-        /*
-        // add a swip gesture recognizer
+        // add a swipe gesture recognizer
         let swipeGesture = UISwipeGestureRecognizer(target: self, action: #selector(handleSwipe(_:)))
         scnView.addGestureRecognizer(swipeGesture)
-        */
 
         // add a pan gesture recognizer
         let panGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
         scnView.addGestureRecognizer(panGesture)
 
+        // add a pinch gesture recognizer
         let pinchGesture = UIPinchGestureRecognizer(target: self, action: #selector(handlePinch(_:)))
         scnView.addGestureRecognizer(pinchGesture)
         
+        // ad a physics contact handler
         scnScene.physicsWorld.contactDelegate = self
   
     }
     
-    /* No swipe yet
     @objc
-    func handleSwipe(_ gestureRecognize: UIGestureRecognizer) {
+    func handleSwipe(_ gestureRecognizer: UISwipeGestureRecognizer) {
         
-        // check what nodes are tapped
-        let p = gestureRecognize.location(in: scnView)
+        debugPrint("swipe")
+        guard gestureRecognizer.view != nil else {return}
         
-        let hitResults = scnView.hitTest(p, options: [:]) // No options
-        
-        // check
-        if hitResults.count > 0 {
-            // retrieved the first clicked object
-            let result = hitResults[0]
+        if gestureRecognizer.state == .began {
+    
+            //
             
-            // move it
-            let randomX = Float.random(in: -2.00 ... 7.00)
-            let randomY = Float.random(in:  1.00 ... 7.00)
-            let randomZ = Float.random(in: -2.00 ... 7.00)
+        } else if (gestureRecognizer.state != .cancelled) {
             
-            let force = SCNVector3(randomX, randomY, randomZ)
-            let position = SCNVector3(0.05, 0.05, 0.05)
-            
-            result.node.physicsBody?.applyForce(force, at: position, asImpulse: true)
+            debugPrint(gestureRecognizer.direction)
         }
-    
-    }
-   */
-    
-    /*
-    func physicsWorld(_ world: SCNPhysicsWorld, didBegin contact: SCNPhysicsContact) {
-        //
-        debugPrint("!")
-        if ((contact.nodeA.name == "Box") && (contact.nodeB.name == "Box")) {
-            print ("true hit")
-            print (contact.collisionImpulse)
+        else {
+            //
         }
+ 
     }
-    */
     
+
     func physicsWorld(_ world: SCNPhysicsWorld, didUpdate contact: SCNPhysicsContact) {
+        // Not used
+        debugPrint("!")
+    }
+    
+    
+    func physicsWorld(_ world: SCNPhysicsWorld, didBegin contact: SCNPhysicsContact) {
     //
         let boxNode: SCNNode!
         if (contact.nodeA.name == "Box") {
@@ -129,8 +117,10 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
     }
     
     var speed = CGPoint()
+    var startPosition = CGPoint()
     var result = SCNHitTestResult()
     var resultFound = false
+    var panGameBoard = false
     @objc
     func handlePan(_ gestureRecognizer: UIPanGestureRecognizer) {
         
@@ -144,13 +134,30 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
             let hitResults = scnView.hitTest(p, options: [:])
             // check that we clicked on at least one object
             if hitResults.count > 0 {
-                // Get the changes in X and Y
-                speed = gestureRecognizer.velocity(in: piece)
                 
-                print(speed)
-                // retrieved the first clicked object
+                 // retrieved the first clicked object
                 result = hitResults[0]
-                resultFound = true
+                
+                // Active components?
+                if ((result.node.name == "Player") || (result.node.name == "Box")){
+                    resultFound = true
+                    panGameBoard = false
+                    // Get the changes in X and Y
+                    speed = gestureRecognizer.velocity(in: piece)
+                    print(speed)
+                } else {
+                    // Pan on the game board
+                    resultFound = false
+                    panGameBoard = true
+                    
+                    startPosition = gestureRecognizer.location(in: scnView)
+                }
+            } else {
+                // Pan on the background
+                resultFound = false
+                panGameBoard = true
+                
+                startPosition = gestureRecognizer.location(in: scnView)
             }
         }
         if gestureRecognizer.state != .cancelled {
@@ -161,6 +168,26 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
     
                 result.node.physicsBody?.applyForce(force, at: position, asImpulse: false)
     
+            } else if (panGameBoard) {
+                
+                let deltaX = startPosition.x - gestureRecognizer.location(in: scnView).x
+                let deltaZ = startPosition.y - gestureRecognizer.location(in: scnView).y
+                
+                debugPrint(deltaX)
+                debugPrint(deltaZ)
+                
+                var newX: Float = cameraNode.position.x
+                var newZ: Float = cameraNode.position.z
+                
+                if (abs(deltaX) > abs(deltaZ)) {
+                    if deltaX > 0 { newX += 0.2}
+                    if deltaX < 0 { newX -= 0.2}
+                } else {
+                    if deltaZ > 0 { newZ += 0.2}
+                    if deltaZ < 0 { newZ -= 0.2}
+                }
+                cameraNode.position = SCNVector3(x: newX, y: cameraNode.position.y, z: newZ)
+                
             }
         }
         else {
@@ -188,12 +215,12 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
             
             if (pinchStart.isLess(than: gestureRecognizer.scale)) {
                 if (cameraNode.position.y - pinchFactor > 4) {
-                    cameraNode.position = SCNVector3(x: 0, y: cameraNode.position.y - pinchFactor, z: 0)
+                    cameraNode.position = SCNVector3(x: cameraNode.position.x, y: cameraNode.position.y - pinchFactor, z: cameraNode.position.z)
                 }
             }
             else {
-                if (cameraNode.position.y - pinchFactor < 20) {
-                    cameraNode.position = SCNVector3(x: 0, y: cameraNode.position.y + pinchFactor, z: 0)
+                if (cameraNode.position.y - pinchFactor < 30) {
+                    cameraNode.position = SCNVector3(x: cameraNode.position.x, y: cameraNode.position.y + pinchFactor, z: cameraNode.position.z)
                 }
             }
             // print(gestureRecognizer.scale)
@@ -205,8 +232,6 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
     
     @objc
     func handleTap(_ gestureRecognize: UIGestureRecognizer) {
-        // retrieve the SCNView
-        //let scnView = self.view as! SCNView
         
         // check what nodes are tapped
         let p = gestureRecognize.location(in: scnView)
@@ -377,13 +402,16 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         scnScene.rootNode.addChildNode(geometryNode)
 
         // Player
-        geometry = SCNSphere(radius: 0.5)
+        //geometry = SCNSphere(radius: 0.5)
+        geometry = SCNBox(width: 1.0, height: 1.0, length: 1.0, chamferRadius: 0.0)
         geometryNode = SCNNode(geometry: geometry)
         geometryNode.position = SCNVector3(-2, 2, 0)
         geometryNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
         geometryNode.physicsBody?.mass = 1.0
         geometryNode.physicsBody?.restitution = 0.25
         geometryNode.physicsBody?.friction = 0.50
+        geometry.materials.first?.diffuse.contents = UIColor.green
+        
         geometryNode.physicsBody!.contactTestBitMask = CollisionTypes.box.rawValue
         geometryNode.physicsBody!.collisionBitMask = CollisionTypes.all.rawValue
         
