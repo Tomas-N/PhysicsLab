@@ -100,11 +100,17 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         }
     
         // Boom effect
-        let particleSystem = SCNParticleSystem(named: "ParticleReactor1", inDirectory: nil)
-        let systemNode = SCNNode()
-        systemNode.addParticleSystem(particleSystem!)
-        systemNode.position = contact.nodeA.presentation.position
-        scnScene.rootNode.addChildNode(systemNode)
+        var particleSystem = SCNParticleSystem(named: "ParticleSmoke1", inDirectory: nil)
+        var particleNode = SCNNode()
+        particleNode.addParticleSystem(particleSystem!)
+        particleNode.position = contact.nodeA.presentation.position
+        scnScene.rootNode.addChildNode(particleNode)
+        
+        particleSystem = SCNParticleSystem(named: "ParticleReactor1", inDirectory: nil)
+        particleNode = SCNNode()
+        particleNode.addParticleSystem(particleSystem!)
+        particleNode.position = contact.nodeA.presentation.position
+        scnScene.rootNode.addChildNode(particleNode)
         
         // Kill box
         boxNode.removeFromParentNode()

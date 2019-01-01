@@ -2,6 +2,9 @@
 <Workspace
    version = "1.0">
    <FileRef
-      location = "self:PhysicsLab.xcodeproj">
+      location = "group:/Users/tomasnystrom/dev/PhysicsLab/PhysicsLab/Blue dot.png">
+   </FileRef>
+   <FileRef
+      location = "self:">
    </FileRef>
 </Workspace>

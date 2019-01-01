@@ -45,6 +45,7 @@
 		407C1F9F21DA075F006BD9F1 /* ParticleReactor1.scnp */ = {isa = PBXFileReference; lastKnownFileType = file.scp; path = ParticleReactor1.scnp; sourceTree = "<group>"; };
 		407C1FA221DA0DDB006BD9F1 /* smoke.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = smoke.png; sourceTree = "<group>"; };
 		407C1FA321DA0DDB006BD9F1 /* ParticleSmoke1.scnp */ = {isa = PBXFileReference; lastKnownFileType = file.scp; path = ParticleSmoke1.scnp; sourceTree = "<group>"; };
+		407C1FA821DBF119006BD9F1 /* Blue dot.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "Blue dot.png"; path = "/Users/tomasnystrom/dev/PhysicsLab/PhysicsLab/Blue dot.png"; sourceTree = "<absolute>"; };
 		40B04D8921D6A2EC00977D7F /* PhysicsLab.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PhysicsLab.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		40B04D8C21D6A2EC00977D7F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		40B04D9021D6A2EC00977D7F /* GameViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameViewController.swift; sourceTree = "<group>"; };
@@ -109,6 +110,7 @@
 		40B04D8B21D6A2EC00977D7F /* PhysicsLab */ = {
 			isa = PBXGroup;
 			children = (
+				407C1FA821DBF119006BD9F1 /* Blue dot.png */,
 				40B04D8C21D6A2EC00977D7F /* AppDelegate.swift */,
 				40B04D9021D6A2EC00977D7F /* GameViewController.swift */,
 				407C1FA221DA0DDB006BD9F1 /* smoke.png */,
