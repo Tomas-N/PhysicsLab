@@ -18,6 +18,7 @@ enum CollisionTypes: Int {
     case wall = 2
     case player = 4
     case all = 7
+    case button = 8 // Exclude button from interaction
 }
 
 class GameViewController: UIViewController, SCNPhysicsContactDelegate {
@@ -25,6 +26,12 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
     var scnView: SCNView!
     var scnScene: SCNScene!
     var cameraNode: SCNNode!
+    var touchMarkerNode: SCNNode!
+    var playerNode: SCNNode!
+    var touchDirectionNode: SCNNode!
+    var touchD1: SCNNode!
+    var touchD2: SCNNode!
+    var touchD3: SCNNode!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -92,42 +99,43 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
             return
         }
     
-       // if (contact.collisionImpulse > 0.2) {
-        
+        // Boom effect
         let particleSystem = SCNParticleSystem(named: "ParticleReactor1", inDirectory: nil)
         let systemNode = SCNNode()
         systemNode.addParticleSystem(particleSystem!)
         systemNode.position = contact.nodeA.presentation.position
         scnScene.rootNode.addChildNode(systemNode)
-
-            debugPrint("-----")
-            debugPrint(boxNode.position)
-            boxNode.scale = SCNVector3(boxNode.scale.x * 0.5, boxNode.scale.y * 0.5, boxNode.scale.y * 0.5)
-            debugPrint(boxNode.position)
-            
-            if(boxNode.scale.x <= 0.25) {
-                boxNode.removeFromParentNode()
-                return
-            }
-            
-            // boxNode.physicsBody?.clearAllForces()
-            let newNode: SCNNode = boxNode.clone()
-            newNode.position = boxNode.presentation.position
-            debugPrint(boxNode.position)
-            debugPrint(newNode.position)
-            // boxNode.physicsBody?.applyForce(, asImpulse: <#T##Bool#>)
-            newNode.physicsBody = boxNode.physicsBody?.copy() as? SCNPhysicsBody
-            
-            //boxNode.physicsBody?.applyForce(contact.coll, asImpulse: <#T##Bool#>)
-            scnScene.rootNode.addChildNode(newNode)
-        //}
-    }
+        
+        // Kill box
+        boxNode.removeFromParentNode()
+        
+        /*
+        // Reduce size
+        boxNode.scale = SCNVector3(boxNode.scale.x * 0.5, boxNode.scale.y * 0.5, boxNode.scale.y * 0.5)
+        if(boxNode.scale.x <= 0.25) {
+            boxNode.removeFromParentNode()
+            return
+        }
+    
+        // Split into two
+        let newNode: SCNNode = boxNode.clone()
+        newNode.position = boxNode.presentation.position
+        newNode.physicsBody = boxNode.physicsBody?.copy() as? SCNPhysicsBody
+        scnScene.rootNode.addChildNode(newNode)
+ */
+ }
     
     var speed = CGPoint()
     var startPosition = CGPoint()
     var result = SCNHitTestResult()
-    var resultFound = false
+    var movePlayer = false
     var panGameBoard = false
+    
+    // The force we will push the player with
+    var applyForce: Float = 0.0
+    // The direction wwe will pysh the player in
+    var forceVector: SCNVector3 = SCNVector3(0,0,0)
+    
     @objc
     func handlePan(_ gestureRecognizer: UIPanGestureRecognizer) {
         
@@ -137,6 +145,8 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         let p = gestureRecognizer.location(in: scnView)
         
         if gestureRecognizer.state == .began {
+            
+            debugPrint("pan started")
             // Get the node
             let hitResults = scnView.hitTest(p, options: [:])
             // check that we clicked on at least one object
@@ -145,43 +155,99 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
                  // retrieved the first clicked object
                 result = hitResults[0]
                 
-                // Active components?
-                if ((result.node.name == "Player") || (result.node.name == "Box")){
-                    resultFound = true
+                // Check type of node touhed
+                if (result.node.name == "Player"){
+                    movePlayer = true
+                    panGameBoard = false
+                    startPosition = p
+                    
+                    playerNode.addChildNode(touchMarkerNode)
+                    debugPrint("WorldFront")
+                    debugPrint(touchDirectionNode.worldFront)
+                    scnScene.rootNode.addChildNode(touchDirectionNode)
+                    touchDirectionNode.position = playerNode.presentation.worldPosition
+                    
+                    // Get the changes in X and Y
+                    speed = gestureRecognizer.velocity(in: piece)
+                    
+                } else if(result.node.name == "Box"){
+                    movePlayer = true
                     panGameBoard = false
                     // Get the changes in X and Y
                     speed = gestureRecognizer.velocity(in: piece)
                     print(speed)
                 } else {
                     // Pan on the game board
-                    resultFound = false
+                    movePlayer = false
                     panGameBoard = true
-                    
-                    startPosition = gestureRecognizer.location(in: scnView)
+                    startPosition = p
                 }
             } else {
                 // Pan on the background
-                resultFound = false
+                movePlayer = false
                 panGameBoard = true
-                
-                startPosition = gestureRecognizer.location(in: scnView)
+                startPosition = p
             }
         }
-        if gestureRecognizer.state != .cancelled {
-            if (resultFound) {
-            
-                let force = SCNVector3(speed.x, 0, speed.y)
-                let position = SCNVector3(0.00, 0.00, 0.00)
-    
-                result.node.physicsBody?.applyForce(force, at: position, asImpulse: false)
-    
+        if (gestureRecognizer.state != .cancelled && gestureRecognizer.state != .ended) {
+            if (movePlayer) {
+                
+                debugPrint("move player")
+                touchMarkerNode.runAction(SCNAction.rotate(toAxisAngle: SCNVector4(1,1,1,  touchMarkerNode.rotation.w + Float.pi), duration: 1.0))
+                
+                // Get the diff between touch point and the player
+                let pos: SCNVector3 = playerNode.presentation.worldPosition
+                let diffx = Float(p.x) - scnView.projectPoint(pos).x
+                let diffz = Float(p.y) - scnView.projectPoint(pos).y
+                
+                // Se the force based on the distance
+                let diffmax = Float.maximum(abs(diffx), abs(diffz))
+                
+                debugPrint(diffmax)
+                if (diffmax > 160.0) {
+                    applyForce = 20.0
+                    
+                    touchD1.opacity = 1.0
+                    touchD2.opacity = 1.0
+                    touchD3.opacity = 1.0
+                    
+                } else if (diffmax > 120) {
+                    applyForce = 10.0
+                    
+                    touchD1.opacity = 1.0
+                    touchD2.opacity = 1.0
+                    touchD3.opacity = 0.0
+                    
+                } else if (diffmax > 80) {
+                    applyForce = 5.0
+                    
+                    touchD1.opacity = 1.0
+                    touchD2.opacity = 0.0
+                    touchD3.opacity = 0.0
+                    
+                } else {
+                    applyForce = 0.0
+                    
+                    touchD1.opacity = 0.0
+                    touchD2.opacity = 0.0
+                    touchD3.opacity = 0.0
+                
+                }
+                
+                // Set the force vector
+                forceVector = SCNVector3(diffx/diffmax * applyForce,0,diffz/diffmax * applyForce)
+                
+                // Get player position
+                let playerX: Float = playerNode.presentation.worldPosition.x
+                let playerY: Float = playerNode.presentation.worldPosition.y
+                
+                // Set the touch indicator to look at the negative force vector
+                touchDirectionNode.look(at: SCNVector3(-(playerX + diffx) , 0, -(playerY + diffz)), up: SCNVector3(0,1,0), localFront: SCNVector3(0,0,-1))
+                
             } else if (panGameBoard) {
                 
                 let deltaX = startPosition.x - gestureRecognizer.location(in: scnView).x
                 let deltaZ = startPosition.y - gestureRecognizer.location(in: scnView).y
-                
-                debugPrint(deltaX)
-                debugPrint(deltaZ)
                 
                 var newX: Float = cameraNode.position.x
                 var newZ: Float = cameraNode.position.z
@@ -198,7 +264,26 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
             }
         }
         else {
-            resultFound = false
+            
+            debugPrint("pan ended")
+            // End the pan and kick the cube
+            
+            if (movePlayer) {
+                
+                self.touchMarkerNode.removeFromParentNode()
+                self.touchDirectionNode.removeFromParentNode()
+                
+                debugPrint("Move player ended")
+                debugPrint(forceVector)
+                let position = SCNVector3(0.00, 0.00, 0.00)
+                playerNode.physicsBody?.applyForce(forceVector, at: position, asImpulse: true)
+                
+                movePlayer = false
+            } else if (panGameBoard) {
+                panGameBoard = false
+            }
+            
+            
         }
     }
     
@@ -230,7 +315,6 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
                     cameraNode.position = SCNVector3(x: cameraNode.position.x, y: cameraNode.position.y + pinchFactor, z: cameraNode.position.z)
                 }
             }
-            // print(gestureRecognizer.scale)
         }
         else {
             // Done
@@ -259,25 +343,49 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
             SCNTransaction.completionBlock = {
                 SCNTransaction.begin()
                 SCNTransaction.animationDuration = 0.5
-                
                 material.emission.contents = UIColor.black
-                
                 SCNTransaction.commit()
             }
             
             material.emission.contents = UIColor.red
             material.emission.intensity = 10.00
-            
             SCNTransaction.commit()
             
-            // move it
-            let randomX = Float.random(in: -2.00 ... 2.00)
-            let randomY = Float.random(in:  1.00 ... 7.00)
-            let randomZ = Float.random(in: -2.00 ... 2.00)
+            if (result.node.name == "Box" || result.node.name == "Player") {
+                // move it
+                let randomX = Float.random(in: -2.00 ... 2.00)
+                let randomY = Float.random(in:  1.00 ... 7.00)
+                let randomZ = Float.random(in: -2.00 ... 2.00)
 
-            let force = SCNVector3(randomX, randomY, randomZ)
-            
-            result.node.physicsBody?.applyForce(force, asImpulse: true)
+                let force = SCNVector3(randomX, randomY, randomZ)
+                
+                result.node.physicsBody?.applyForce(force, asImpulse: true)
+            } else if (result.node.name == "Button") {
+                // rotate it
+                
+                result.node.runAction(SCNAction.rotate(toAxisAngle: SCNVector4(1,1,1, result.node.rotation.w + Float.pi), duration: 1.0))
+                
+                var geometry: SCNGeometry
+                var geometryNode: SCNNode
+                
+                let randomX = Float.random(in: -1.00 ... 1.00)
+                let randomY = Float.random(in:  1.00 ... 7.00)
+                let randomZ = Float.random(in: -1.00 ... 1.00)
+                
+                geometry = SCNBox(width: 1.0, height: 1.0, length: 1.0, chamferRadius: 0.0)
+                geometryNode = SCNNode(geometry: geometry)
+                geometryNode.position = SCNVector3(randomX, randomY, randomZ)
+                geometryNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
+                geometryNode.physicsBody?.mass = 1.0
+                geometryNode.physicsBody?.restitution = 0.25
+                geometryNode.physicsBody?.friction = 0.75
+                geometryNode.physicsBody!.contactTestBitMask = CollisionTypes.player.rawValue
+                geometryNode.physicsBody!.collisionBitMask = CollisionTypes.all.rawValue
+                
+                geometryNode.name = "Box"
+                
+                scnScene.rootNode.addChildNode(geometryNode)
+            }
         }
     }
     
@@ -291,7 +399,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
     
     func setupView()  {
         scnView = (self.view as! SCNView)
-        scnView.showsStatistics = true
+        scnView.showsStatistics = false
         scnView.allowsCameraControl = false
         // scnView.autoenablesDefaultLighting = true
         scnView.delegate = self
@@ -305,7 +413,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         let lightNode = SCNNode()
         lightNode.light = SCNLight()
         lightNode.light!.type = .omni
-        lightNode.position = SCNVector3(x: 10, y: 10, z: 10)
+        lightNode.position = SCNVector3(x: 10, y: 15, z: 10)
         scnScene.rootNode.addChildNode(lightNode)
         
         // create and add an ambient light to the scene
@@ -320,6 +428,8 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
     func setupCamera() {
         cameraNode = SCNNode()
         cameraNode.camera = SCNCamera()
+        cameraNode.camera?.zFar = 50
+        cameraNode.camera?.zNear = 0
         cameraNode.position = SCNVector3(x: 0, y: 15, z: 0)
         cameraNode.eulerAngles = SCNVector3Make(-Float.pi/2, 0, 0)
         scnScene.rootNode.addChildNode(cameraNode)
@@ -341,16 +451,17 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         
         // Right side
         geometry = SCNBox(width: 1.0, height: 6.0, length: 12.0, chamferRadius: 0.0)
-        geometry.materials.first?.diffuse.contents = UIColor.blue
+        geometry.materials.first?.diffuse.contents = UIColor.black
         geometryNode = SCNNode(geometry: geometry)
         geometryNode.position = SCNVector3(5.5, -0.5, 0)
+        
         geometryNode.physicsBody = SCNPhysicsBody(type: .static, shape: nil)
         geometryNode.physicsBody!.collisionBitMask = CollisionTypes.all.rawValue
         gameboard.addChildNode(geometryNode)
         
         // Left side
         geometry = SCNBox(width: 1.0, height: 6.0, length: 12.0, chamferRadius: 0.0)
-        geometry.materials.first?.diffuse.contents = UIColor.blue
+        geometry.materials.first?.diffuse.contents = UIColor.black
         geometryNode = SCNNode(geometry: geometry)
         geometryNode.position = SCNVector3(-5.5, -0.5, 0)
         geometryNode.physicsBody = SCNPhysicsBody(type: .static, shape: nil)
@@ -359,7 +470,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         
         // Top side
         geometry = SCNBox(width: 10.0, height: 6.0, length: 1.0, chamferRadius: 0.0)
-        geometry.materials.first?.diffuse.contents = UIColor.blue
+        geometry.materials.first?.diffuse.contents = UIColor.black
         geometryNode = SCNNode(geometry: geometry)
         geometryNode.position = SCNVector3(0, -0.5, 5.5)
         geometryNode.physicsBody = SCNPhysicsBody(type: .static, shape: nil)
@@ -368,7 +479,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         
         // Bottom side
         geometry = SCNBox(width: 10.0, height: 6.0, length: 1.0, chamferRadius: 0.0)
-        geometry.materials.first?.diffuse.contents = UIColor.blue
+        geometry.materials.first?.diffuse.contents = UIColor.black
         geometryNode = SCNNode(geometry: geometry)
         geometryNode.position = SCNVector3(0, -0.5, -5.5)
         geometryNode.physicsBody = SCNPhysicsBody(type: .static, shape: nil)
@@ -377,7 +488,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         
         // Add the board
         scnScene.rootNode.addChildNode(gameboard)
-        
+    
         
         // Add two pieces
         geometry = SCNBox(width: 2.0, height: 2.0, length: 1.0, chamferRadius: 0.0)
@@ -424,8 +535,56 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         
         geometryNode.name = "Player"
         
+        playerNode = geometryNode
+        
         scnScene.rootNode.addChildNode(geometryNode)
         
+        
+        // Add menu button
+        geometry = SCNBox(width: 0.2, height: 0.2, length: 0.2, chamferRadius: 0.0)
+        geometryNode = SCNNode(geometry: geometry)
+        geometryNode.position = SCNVector3(-0.8,1.5,-3)
+        geometry.materials.first?.diffuse.contents = UIColor.white
+
+        geometryNode.name = "Button"
+        
+        cameraNode.addChildNode(geometryNode)
+        
+        // Touch marker - not added to scene
+        geometry = SCNTorus(ringRadius: 0.8, pipeRadius: 0.2)
+        geometryNode = SCNNode(geometry: geometry)
+        geometry.materials.first?.diffuse.contents = UIColor.red
+        touchMarkerNode = geometryNode
+    
+        // Tuch direction node hierarchy
+        geometryNode = SCNNode()
+        touchDirectionNode = geometryNode
+        
+        geometry = SCNCone(topRadius: 0.4, bottomRadius: 0.6, height: 0.4)
+        geometryNode = SCNNode(geometry: geometry)
+        geometryNode.position = SCNVector3(0.0, 0.0, 1.5)
+        geometryNode.eulerAngles = SCNVector3(Double.pi / 2,0,0)
+        geometry.materials.first?.diffuse.contents = UIColor.red
+        touchD1 = geometryNode
+        
+        geometry = SCNCone(topRadius: 0.2, bottomRadius: 0.4, height: 0.4)
+        geometryNode = SCNNode(geometry: geometry)
+        geometryNode.position = SCNVector3(0.0, 0.0, 1.9)
+        geometryNode.eulerAngles = SCNVector3(Double.pi / 2,0,0)
+        geometry.materials.first?.diffuse.contents = UIColor.red
+        touchD2 = geometryNode
+        
+        
+        geometry = SCNCone(topRadius: 0.0, bottomRadius: 0.2, height: 0.4)
+        geometryNode = SCNNode(geometry: geometry)
+        geometryNode.position = SCNVector3(0.0, 0.0, 2.3)
+        geometryNode.eulerAngles = SCNVector3(Double.pi / 2,0,0)
+        geometry.materials.first?.diffuse.contents = UIColor.red
+        touchD3 = geometryNode
+        
+        touchDirectionNode.addChildNode(touchD1)
+        touchDirectionNode.addChildNode(touchD2)
+        touchDirectionNode.addChildNode(touchD3)
     }
     /*
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
