@@ -2,6 +2,18 @@
 <Workspace
    version = "1.0">
    <FileRef
+      location = "group:../PhysicsLab/Particle/spark.png">
+   </FileRef>
+   <FileRef
+      location = "group:../PhysicsLab/Particle/Fire1.scnp">
+   </FileRef>
+   <FileRef
+      location = "group:../Worlds/1.world">
+   </FileRef>
+   <FileRef
+      location = "group:../Worlds/1.world.swift">
+   </FileRef>
+   <FileRef
       location = "group:/Users/tomasnystrom/dev/PhysicsLab/PhysicsLab/Blue dot.png">
    </FileRef>
    <FileRef

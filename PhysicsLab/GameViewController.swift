@@ -26,6 +26,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
     var scnView: SCNView!
     var scnScene: SCNScene!
     var cameraNode: SCNNode!
+    var gameBoard: SCNNode!
     var touchMarkerNode: SCNNode!
     var playerNode: SCNNode!
     var touchDirectionNode: SCNNode!
@@ -38,8 +39,8 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         
         setupView()
         setupScene()
-        setupCamera()
-        spawnShape()
+        setupWorld()
+        setupToucMarker()
         
         // add a tap gesture recognizer
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
@@ -100,18 +101,18 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         }
     
         // Boom effect
-        var particleSystem = SCNParticleSystem(named: "ParticleSmoke1", inDirectory: nil)
-        var particleNode = SCNNode()
+        let particleSystem = SCNParticleSystem(named: "Fire1", inDirectory: nil)
+        let particleNode = SCNNode()
         particleNode.addParticleSystem(particleSystem!)
         particleNode.position = contact.nodeA.presentation.position
         scnScene.rootNode.addChildNode(particleNode)
-        
-        particleSystem = SCNParticleSystem(named: "ParticleReactor1", inDirectory: nil)
+        /*
+        particleSystem = SCNParticleSystem(named: "ParticleReactor1", inDirectory: "Particle")
         particleNode = SCNNode()
         particleNode.addParticleSystem(particleSystem!)
         particleNode.position = contact.nodeA.presentation.position
         scnScene.rootNode.addChildNode(particleNode)
-        
+        */
         // Kill box
         boxNode.removeFromParentNode()
         
@@ -432,6 +433,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
     }
     
     func setupCamera() {
+        /*
         cameraNode = SCNNode()
         cameraNode.camera = SCNCamera()
         cameraNode.camera?.zFar = 50
@@ -439,13 +441,14 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         cameraNode.position = SCNVector3(x: 0, y: 15, z: 0)
         cameraNode.eulerAngles = SCNVector3Make(-Float.pi/2, 0, 0)
         scnScene.rootNode.addChildNode(cameraNode)
+        */
     }
     
     func spawnShape() {
         var geometry: SCNGeometry
         var geometryNode: SCNNode
-        let gameboard: SCNNode = SCNNode()
-        
+        //let gameboard: SCNNode = SCNNode()
+        /*
         // Floor
         geometry = SCNBox(width: 10.0, height: 1.0, length: 10.0, chamferRadius: 0.0)
         geometry.materials.first?.diffuse.contents = UIColor.blue
@@ -494,7 +497,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         
         // Add the board
         scnScene.rootNode.addChildNode(gameboard)
-    
+    */
         
         // Add two pieces
         geometry = SCNBox(width: 2.0, height: 2.0, length: 1.0, chamferRadius: 0.0)
@@ -525,6 +528,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         
         scnScene.rootNode.addChildNode(geometryNode)
 
+        /*
         // Player
         //geometry = SCNSphere(radius: 0.5)
         geometry = SCNBox(width: 1.0, height: 1.0, length: 1.0, chamferRadius: 0.0)
@@ -544,7 +548,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         playerNode = geometryNode
         
         scnScene.rootNode.addChildNode(geometryNode)
-        
+        */
         
         // Add menu button
         geometry = SCNBox(width: 0.2, height: 0.2, length: 0.2, chamferRadius: 0.0)
@@ -601,7 +605,155 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         }
     }
     */
+    func setupWorld() {
+        
+        var world: [String]!
+        if let filepath = Bundle.main.path(forResource: "1", ofType: "world") {
+            do {
+                let contents = try String(contentsOfFile: filepath)
+                debugPrint(contents)
+                world = contents.components(separatedBy: "\n")
+                debugPrint(world.count)
+                
+                // Create the node for the gameboard
+                gameBoard = SCNNode()
+                scnScene.rootNode.addChildNode(gameBoard)
+                
+                // Create the word by cycling through each character
+                var x: Float = 0.0
+                var y: Float = 0.0
+                for row in world {
+                    for col in row {
+                        switch col {
+                        case "0":
+                            createWall(x: x, y: y)
+                        case "1":
+                            createFloor(x: x, y: y)
+                        case "X":
+                            spawnPlayer(x: x, y: y)
+                        default:
+                            debugPrint("Nothing to add... \(x) \(y)")
+                        }
+                        x += 2.0 // Move one to the right
+                    }
+                    y += 2.0 // Move one down
+                    x = 0.0 // And to the start of the line
+                }
+                
+            } catch {
+                // contents could not be loaded
+            }
+        } else {
+            // example.txt not found!
+        }
+        
+    }
+    
+    func createWall(x: Float, y: Float) {
+        var geometry: SCNGeometry
+        var geometryNode: SCNNode
+        // Black box
+        geometry = SCNBox(width: 2.0, height: 2.0, length: 2.0, chamferRadius: 0.0)
+        //geometry.materials.first?.diffuse.contents = UIColor.black
+        geometryNode = SCNNode(geometry: geometry)
+        geometryNode.position = SCNVector3(x, 0.0, y)
+        geometryNode.physicsBody = SCNPhysicsBody(type: .static, shape: nil)
+        geometryNode.physicsBody!.collisionBitMask = CollisionTypes.all.rawValue
+        gameBoard.addChildNode(geometryNode)
+    }
+    
+    func createFloor(x: Float, y: Float) {
+        var geometry: SCNGeometry
+        var geometryNode: SCNNode
+        // Blue box
+        geometry = SCNBox(width: 2.0, height: 1.0, length: 2.0, chamferRadius: 0.2)
+        geometry.materials.first?.diffuse.contents = UIColor.blue
+        geometryNode = SCNNode(geometry: geometry)
+        geometryNode.position = SCNVector3(x, -1.0, y)
+        geometryNode.physicsBody = SCNPhysicsBody(type: .static, shape: nil)
+        geometryNode.physicsBody!.collisionBitMask = CollisionTypes.all.rawValue
+        gameBoard.addChildNode(geometryNode)
+    }
 
+    
+    func spawnPlayer(x: Float, y: Float) {
+        // First create floor under player
+        createFloor(x: x, y: y)
+        
+        let geometry = SCNBox(width: 1.0, height: 1.0, length: 1.0, chamferRadius: 0.0)
+        geometry.materials.first?.diffuse.contents = UIColor.green
+        
+        playerNode = SCNNode(geometry: geometry)
+        playerNode.position = SCNVector3(x, 40, y)
+        playerNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
+        playerNode.physicsBody?.mass = 1.0
+        playerNode.physicsBody?.restitution = 0.25
+        playerNode.physicsBody?.friction = 0.50
+        playerNode.physicsBody!.contactTestBitMask = CollisionTypes.box.rawValue
+        playerNode.physicsBody!.collisionBitMask = CollisionTypes.all.rawValue
+        
+        playerNode.name = "Player"
+    
+        scnScene.rootNode.addChildNode(playerNode)
+        
+        // Add the camera
+        
+        cameraNode = SCNNode()
+        cameraNode.camera = SCNCamera()
+        cameraNode.camera?.zFar = 50
+        cameraNode.camera?.zNear = 0
+        cameraNode.position = SCNVector3(x: x, y: 50, z: y)
+        cameraNode.eulerAngles = SCNVector3Make(-Float.pi/2, 0, 0)
+    
+        // make the camera follow the player
+        cameraNode.constraints?.append(SCNLookAtConstraint(target: playerNode))
+        
+        scnScene.rootNode.addChildNode(cameraNode)
+        
+        //cameraNode.constraints?.append(SCNAccelerationConstraint())
+        
+    }
+    
+    func setupToucMarker() {
+        var geometry: SCNGeometry
+        var geometryNode: SCNNode
+        
+        // Touch marker - not added to scene
+        geometry = SCNTorus(ringRadius: 0.8, pipeRadius: 0.2)
+        geometryNode = SCNNode(geometry: geometry)
+        geometry.materials.first?.diffuse.contents = UIColor.red
+        touchMarkerNode = geometryNode
+        
+        // Tuch direction node hierarchy
+        geometryNode = SCNNode()
+        touchDirectionNode = geometryNode
+        
+        geometry = SCNCone(topRadius: 0.4, bottomRadius: 0.6, height: 0.4)
+        geometryNode = SCNNode(geometry: geometry)
+        geometryNode.position = SCNVector3(0.0, 0.0, 1.5)
+        geometryNode.eulerAngles = SCNVector3(Double.pi / 2,0,0)
+        geometry.materials.first?.diffuse.contents = UIColor.red
+        touchD1 = geometryNode
+        
+        geometry = SCNCone(topRadius: 0.2, bottomRadius: 0.4, height: 0.4)
+        geometryNode = SCNNode(geometry: geometry)
+        geometryNode.position = SCNVector3(0.0, 0.0, 1.9)
+        geometryNode.eulerAngles = SCNVector3(Double.pi / 2,0,0)
+        geometry.materials.first?.diffuse.contents = UIColor.red
+        touchD2 = geometryNode
+        
+        
+        geometry = SCNCone(topRadius: 0.0, bottomRadius: 0.2, height: 0.4)
+        geometryNode = SCNNode(geometry: geometry)
+        geometryNode.position = SCNVector3(0.0, 0.0, 2.3)
+        geometryNode.eulerAngles = SCNVector3(Double.pi / 2,0,0)
+        geometry.materials.first?.diffuse.contents = UIColor.red
+        touchD3 = geometryNode
+        
+        touchDirectionNode.addChildNode(touchD1)
+        touchDirectionNode.addChildNode(touchD2)
+        touchDirectionNode.addChildNode(touchD3)
+    }
 }
 
 extension GameViewController: SCNSceneRendererDelegate {

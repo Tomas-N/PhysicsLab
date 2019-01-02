@@ -7,11 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		407C1F9D21D8B4BF006BD9F1 /* ContactHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 407C1F9C21D8B4BF006BD9F1 /* ContactHandler.swift */; };
-		407C1FA021DA075F006BD9F1 /* spark.png in Resources */ = {isa = PBXBuildFile; fileRef = 407C1F9E21DA075F006BD9F1 /* spark.png */; };
-		407C1FA121DA075F006BD9F1 /* ParticleReactor1.scnp in Resources */ = {isa = PBXBuildFile; fileRef = 407C1F9F21DA075F006BD9F1 /* ParticleReactor1.scnp */; };
-		407C1FA421DA0DDB006BD9F1 /* smoke.png in Resources */ = {isa = PBXBuildFile; fileRef = 407C1FA221DA0DDB006BD9F1 /* smoke.png */; };
-		407C1FA521DA0DDB006BD9F1 /* ParticleSmoke1.scnp in Resources */ = {isa = PBXBuildFile; fileRef = 407C1FA321DA0DDB006BD9F1 /* ParticleSmoke1.scnp */; };
+		4068C70521DD130C00AC4FD7 /* spark.png in Resources */ = {isa = PBXBuildFile; fileRef = 4068C70321DD130B00AC4FD7 /* spark.png */; };
+		4068C70621DD130C00AC4FD7 /* Fire1.scnp in Resources */ = {isa = PBXBuildFile; fileRef = 4068C70421DD130B00AC4FD7 /* Fire1.scnp */; };
+		4068C70821DD15EA00AC4FD7 /* 1.world in Resources */ = {isa = PBXBuildFile; fileRef = 4068C70721DD15EA00AC4FD7 /* 1.world */; };
 		40B04D8D21D6A2EC00977D7F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40B04D8C21D6A2EC00977D7F /* AppDelegate.swift */; };
 		40B04D9121D6A2EC00977D7F /* GameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40B04D9021D6A2EC00977D7F /* GameViewController.swift */; };
 		40B04D9421D6A2EC00977D7F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 40B04D9221D6A2EC00977D7F /* Main.storyboard */; };
@@ -40,12 +38,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		407C1F9C21D8B4BF006BD9F1 /* ContactHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactHandler.swift; sourceTree = "<group>"; };
-		407C1F9E21DA075F006BD9F1 /* spark.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = spark.png; sourceTree = "<group>"; };
-		407C1F9F21DA075F006BD9F1 /* ParticleReactor1.scnp */ = {isa = PBXFileReference; lastKnownFileType = file.scp; path = ParticleReactor1.scnp; sourceTree = "<group>"; };
-		407C1FA221DA0DDB006BD9F1 /* smoke.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = smoke.png; sourceTree = "<group>"; };
-		407C1FA321DA0DDB006BD9F1 /* ParticleSmoke1.scnp */ = {isa = PBXFileReference; lastKnownFileType = file.scp; path = ParticleSmoke1.scnp; sourceTree = "<group>"; };
-		407C1FA821DBF119006BD9F1 /* Blue dot.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "Blue dot.png"; path = "/Users/tomasnystrom/dev/PhysicsLab/PhysicsLab/Blue dot.png"; sourceTree = "<absolute>"; };
+		4068C70321DD130B00AC4FD7 /* spark.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = spark.png; sourceTree = "<group>"; };
+		4068C70421DD130B00AC4FD7 /* Fire1.scnp */ = {isa = PBXFileReference; lastKnownFileType = file.scp; path = Fire1.scnp; sourceTree = "<group>"; };
+		4068C70721DD15EA00AC4FD7 /* 1.world */ = {isa = PBXFileReference; lastKnownFileType = text; path = 1.world; sourceTree = "<group>"; };
 		40B04D8921D6A2EC00977D7F /* PhysicsLab.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PhysicsLab.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		40B04D8C21D6A2EC00977D7F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		40B04D9021D6A2EC00977D7F /* GameViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameViewController.swift; sourceTree = "<group>"; };
@@ -87,6 +82,23 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		407C1FAB21DD0F9C006BD9F1 /* Worlds */ = {
+			isa = PBXGroup;
+			children = (
+				4068C70721DD15EA00AC4FD7 /* 1.world */,
+			);
+			path = Worlds;
+			sourceTree = "<group>";
+		};
+		407C1FAC21DD0FD8006BD9F1 /* Particle */ = {
+			isa = PBXGroup;
+			children = (
+				4068C70421DD130B00AC4FD7 /* Fire1.scnp */,
+				4068C70321DD130B00AC4FD7 /* spark.png */,
+			);
+			path = Particle;
+			sourceTree = "<group>";
+		};
 		40B04D8021D6A2EC00977D7F = {
 			isa = PBXGroup;
 			children = (
@@ -110,19 +122,15 @@
 		40B04D8B21D6A2EC00977D7F /* PhysicsLab */ = {
 			isa = PBXGroup;
 			children = (
-				407C1FA821DBF119006BD9F1 /* Blue dot.png */,
+				407C1FAC21DD0FD8006BD9F1 /* Particle */,
+				407C1FAB21DD0F9C006BD9F1 /* Worlds */,
 				40B04D8C21D6A2EC00977D7F /* AppDelegate.swift */,
 				40B04D9021D6A2EC00977D7F /* GameViewController.swift */,
-				407C1FA221DA0DDB006BD9F1 /* smoke.png */,
-				407C1FA321DA0DDB006BD9F1 /* ParticleSmoke1.scnp */,
-				407C1F9E21DA075F006BD9F1 /* spark.png */,
-				407C1F9F21DA075F006BD9F1 /* ParticleReactor1.scnp */,
 				40B04D9221D6A2EC00977D7F /* Main.storyboard */,
 				40B04D9521D6A2ED00977D7F /* Assets.xcassets */,
 				40B04D9721D6A2ED00977D7F /* LaunchScreen.storyboard */,
 				40B04D9A21D6A2ED00977D7F /* Info.plist */,
 				40B04DBC21D6AD7000977D7F /* ShapeType.swift */,
-				407C1F9C21D8B4BF006BD9F1 /* ContactHandler.swift */,
 			);
 			path = PhysicsLab;
 			sourceTree = "<group>";
@@ -249,12 +257,11 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4068C70821DD15EA00AC4FD7 /* 1.world in Resources */,
+				4068C70621DD130C00AC4FD7 /* Fire1.scnp in Resources */,
 				40B04D9921D6A2ED00977D7F /* LaunchScreen.storyboard in Resources */,
-				407C1FA421DA0DDB006BD9F1 /* smoke.png in Resources */,
-				407C1FA521DA0DDB006BD9F1 /* ParticleSmoke1.scnp in Resources */,
-				407C1FA021DA075F006BD9F1 /* spark.png in Resources */,
+				4068C70521DD130C00AC4FD7 /* spark.png in Resources */,
 				40B04D9621D6A2ED00977D7F /* Assets.xcassets in Resources */,
-				407C1FA121DA075F006BD9F1 /* ParticleReactor1.scnp in Resources */,
 				40B04D9421D6A2EC00977D7F /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -281,7 +288,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				40B04D9121D6A2EC00977D7F /* GameViewController.swift in Sources */,
-				407C1F9D21D8B4BF006BD9F1 /* ContactHandler.swift in Sources */,
 				40B04DBD21D6AD7000977D7F /* ShapeType.swift in Sources */,
 				40B04D8D21D6A2EC00977D7F /* AppDelegate.swift in Sources */,
 			);
