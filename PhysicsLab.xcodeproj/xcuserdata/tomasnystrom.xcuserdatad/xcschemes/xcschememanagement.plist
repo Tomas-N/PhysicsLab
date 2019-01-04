@@ -4,10 +4,33 @@
 <dict>
 	<key>SchemeUserState</key>
 	<dict>
+		<key>PhysicsLab Run.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>1</integer>
+		</dict>
 		<key>PhysicsLab.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>orderHint</key>
 			<integer>0</integer>
+		</dict>
+	</dict>
+	<key>SuppressBuildableAutocreation</key>
+	<dict>
+		<key>40B04D8821D6A2EC00977D7F</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>40B04D9E21D6A2ED00977D7F</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>40B04DA921D6A2ED00977D7F</key>
+		<dict>
+			<key>primary</key>
+			<true/>
 		</dict>
 	</dict>
 </dict>
