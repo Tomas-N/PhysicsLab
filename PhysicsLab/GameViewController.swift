@@ -44,7 +44,8 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
     var gameMoves: Int = 0
     
     var gameWorld: CharacterMatrix!
-
+    var gameSurface: IntMatrix!
+    
     var gameHUDInvalid: Bool = false
     
     var touchMarkerNode: SCNNode!
@@ -54,8 +55,8 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
     var touchD2: SCNNode!
     var touchD3: SCNNode!
     
-    var playerSpawnX: Float!
-    var playerSpawnY: Float!
+    var playerSpawnX: Int!
+    var playerSpawnY: Int!
     
     var cameraConstraint: SCNTransformConstraint! // Exactly on top, changing Y
     var cameraOutOfBounds: Bool = false
@@ -382,13 +383,6 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
                 scnScene.rootNode.addChildNode(geometryNode)
             }
         }
-        debugPrint(cameraNode.camera?.focalLength)
-        debugPrint(cameraNode.camera?.fieldOfView)
-        debugPrint(cameraNode.camera?.sensorHeight)
-        debugPrint(cameraNode.scale)
-        debugPrint(scnView.bounds.height)
-        debugPrint(scnView.bounds.width)
-        
     }
     
     override var shouldAutorotate: Bool {
@@ -486,16 +480,6 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         scnView.overlaySKScene = gameHUD
         
     }
- 
-    /*
-    override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
-        if UIDevice.current.userInterfaceIdiom == .phone {
-            return .allButUpsideDown
-        } else {
-            return .all
-        }
-    }
-    */
     
     func setupWorld() {
         
@@ -503,7 +487,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         
         gameHUDInvalid = true
         
-        if let filepath = Bundle.main.path(forResource: "1", ofType: "world") {
+        if let filepath = Bundle.main.path(forResource: "2", ofType: "world") {
             do {
                 let contents = try String(contentsOfFile: filepath)
                 debugPrint(contents)
@@ -518,9 +502,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
                 
                 gameWorld = CharacterMatrix(rows: world.count, columns: (world.max()?.count)!)
                 
-                debugPrint(world.max()?.count)
-                debugPrint(world.count)
-                
+                // Store the world in the gameWorld matrix
                 var xG: Int = 0
                 var yG: Int = 0
                 for row in world {
@@ -535,8 +517,8 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
                 debugPrint(gameWorld)
                 
                 // Create the word by cycling through each character
-                var x: Float = 0.0
-                var y: Float = 0.0
+                var x: Int = 0
+                var y: Int = 0
                 for row in world {
                     for col in row {
                         switch col {
@@ -560,10 +542,10 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
                         default:
                             debugPrint("Nothing to add... \(x) \(y)")
                         }
-                        x += 1.0 // Move one to the right
+                        x += 1 // Move one to the right
                     }
-                    y += 1.0 // Move one down
-                    x = 0.0 // And to the start of the line
+                    y += 1 // Move one down
+                    x = 0 // And to the start of the line
                 }
                 
             } catch {
@@ -575,51 +557,117 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         
     }
     
-    func createWall(x: Float, y: Float) {
-        let geometry = SCNBox(width: 2.0, height: 2.0, length: 2.0, chamferRadius: 0.0)
+    func createWall(x: Int, y: Int) {
         
-        
-        
-        
-        geometry.materials.first?.diffuse.contents = UIColor.darkGray
-        geometry.materials.first?.locksAmbientWithDiffuse = true
-        geometry.materials.first?.blendMode = SCNBlendMode.max
-        
-        //geometry.materials.first?.diffuse.contents = "spark.png"
-        let geometryNode = SCNNode(geometry: geometry)
-        geometryNode.position = SCNVector3(x*2, 0.0, y*2)
-        geometryNode.physicsBody = SCNPhysicsBody(type: .static, shape: nil)
-        geometryNode.physicsBody!.collisionBitMask = CollisionTypes.all.rawValue
-        geometryNode.castsShadow = false
+        // top
+        var geometryNode = createPlane(x: x, y: y, xOff: 0.0, yOff: 2.0, zOff: 0.0, angles: SCNVector3(-Float.pi/2,0,0), color: UIColor.darkGray)
         geometryNode.name = "Wall"
-        gameBoardWalls.addChildNode(geometryNode)
-    }
-    
-    func createFloor(x: Float, y: Float) {
-        
-        /*
-        let geometry = SCNPlane(width: 2.0, height: 2.0)
-        geometry.materials.first?.diffuse.contents = UIColor.blue
-        
-        let geometryNode = SCNNode(geometry: geometry)
-        geometryNode.position = SCNVector3(x*2, -1.0, y*2)
-        geometryNode.eulerAngles = SCNVector3(-Float.pi/2,0,0)
-        geometryNode.physicsBody = SCNPhysicsBody(type: .static, shape: nil)
-        geometryNode.physicsBody!.collisionBitMask = CollisionTypes.all.rawValue
-        geometryNode.castsShadow = false
-        */
-        
-        let geometryNode = createPlane(x: x, y: y, angles: SCNVector3(-Float.pi/2,0,0), color: UIColor.blue)
-        geometryNode.name = "Floor"
-    
         gameBoardFloor.addChildNode(geometryNode)
- 
+        
+        // South side
+        // Does the camworld continue?
+        if(gameWorld.rows > y) {
+            // It is not a wall
+            if(gameWorld![y+1,x] != "0") {
+                geometryNode = createPlane(x: x, y: y, xOff:0.0, yOff: 1.0, zOff: 1.0, angles: SCNVector3(0,0,0), color: UIColor.darkGray)
+                geometryNode.name = "Wall"
+                gameBoardFloor.addChildNode(geometryNode)
+            }
+        }
+        
+        // North side
+        // Does the camworld continue?
+        if(y > 1) {
+            // It is not a wall
+            if(gameWorld![y-1,x] != "0") {
+                geometryNode = createPlane(x: x, y: y, xOff:0.0, yOff: 1.0, zOff: -1.0, angles: SCNVector3(0,Float.pi,0), color: UIColor.darkGray)
+                geometryNode.name = "Wall"
+                gameBoardFloor.addChildNode(geometryNode)
+            }
+        }
+        
+        // Left side
+        // Does the camworld continue?
+        if(x > 0) {
+            // It is not a wall
+            if(gameWorld![y,x-1] != "0") {
+                geometryNode = createPlane(x: x, y: y, xOff:-1.0, yOff: 1.0, zOff: 0.0, angles: SCNVector3(0,-Float.pi/2,0), color: UIColor.darkGray)
+                geometryNode.name = "Wall"
+                gameBoardFloor.addChildNode(geometryNode)
+            }
+        }
+    
+        // Right side
+        // Does the camworld continue?
+        if(x < (gameWorld.columns - 1)) {
+            // It is not a wall
+            if(gameWorld![y,x+1] != "0") {
+                geometryNode = createPlane(x: x, y: y, xOff:1.0, yOff: 1.0, zOff: 0.0, angles: SCNVector3(0,Float.pi/2,0), color: UIColor.darkGray)
+                geometryNode.name = "Wall"
+                gameBoardFloor.addChildNode(geometryNode)
+            }
+        }
+        
     }
-    func createPlane(x: Float, y: Float, angles: SCNVector3, color: UIColor) -> SCNNode {
+    /*
+    func createFloor(x: Int, y: Int) {
+        let geometryNode = createPlane(x: x, y: y, xOff: 0.0, yOff: 0.0, zOff: 0.0, angles: SCNVector3(-Float.pi/2,0,0), color: UIColor.blue)
+        geometryNode.name = "Floor"
+        gameBoardFloor.addChildNode(geometryNode)
+    }
+ */
+    
+    func createFloor(x: Int, y: Int) {
+   
+        let indices: [UInt16] = [
+            0, 1, 2,
+            0, 2, 3,
+            0, 3, 4,
+            0, 4, 5,
+            0, 5, 6,
+            0, 6, 7,
+            0, 7, 8,
+            0, 8, 1
+        ]
+        
+        let vertices: [SCNVector3] = []
+        
+        // Check if any surrounding area is one higher
+        var angled: Bool = false
+        
+        // South side
+        if(gameSurface.rows > y) {
+            if(gameSurface[y+1,x] == (gameSurface[y,x] + 1)) { angled = true }
+        }
+        
+        // North side
+        if(y > 1) {
+            if(gameSurface[y-1,x] == (gameSurface[y,x] + 1)) { angled = true }
+        }
+        
+        // Left side
+        if(x > 0) {
+            if(gameSurface [y,x-1] == (gameSurface[y,x] + 1)) { angled = true }
+        }
+        
+        // Right side
+        if(x < (gameSurface.columns - 1)) {
+            if(gameSurface[y,x+1] == (gameSurface[y,x] + 1)) { angled = true }
+        }
+        
+        if (angled) {
+            
+        } else {
+            
+        }
+        
+    }
+    
+    func createPlane(x: Int, y: Int, xOff: Float, yOff: Float, zOff: Float, angles: SCNVector3, color: UIColor) -> SCNNode {
         let geometry = SCNPlane(width: 2.0, height: 2.0)
         geometry.materials.first?.diffuse.contents = color
         let geometryNode = SCNNode(geometry: geometry)
-        geometryNode.position = SCNVector3(x*2, -1.0, y*2)
+        geometryNode.position = SCNVector3(Float(x)*2 + xOff, yOff, Float(y)*2 + zOff)
         geometryNode.eulerAngles = angles
         geometryNode.physicsBody = SCNPhysicsBody(type: .static, shape: nil)
         geometryNode.physicsBody!.collisionBitMask = CollisionTypes.all.rawValue
@@ -627,11 +675,11 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         return geometryNode
     }
 
-    func createRaisedFloor(x: Float, y: Float) {
-        let geometry = SCNPyramid(width: 2.0, height: 2.0, length: 1.9)
+    func createRaisedFloor(x: Int, y: Int) {
+        let geometry = SCNPyramid(width: 2.0, height: 2.0, length: 2.0)
         geometry.materials.first?.diffuse.contents = UIColor.blue
         let geometryNode = SCNNode(geometry: geometry)
-        geometryNode.position = SCNVector3(x*2, -1.0, y*2)
+        geometryNode.position = SCNVector3(Float(x)*2, 0.0, Float(y)*2)
         geometryNode.physicsBody = SCNPhysicsBody(type: .static, shape: nil)
         geometryNode.physicsBody!.collisionBitMask = CollisionTypes.all.rawValue
         geometryNode.castsShadow = false
@@ -640,14 +688,13 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         gameBoardFloor.addChildNode(geometryNode)
     }
     
-    func spawnBoxA(x: Float, y: Float) {
-        createFloor(x: x, y: y)
+    func spawnBoxA(x: Int, y: Int) {
         
         let geometry = SCNBox(width: 1.0, height: 1.0, length: 1.0, chamferRadius: 0.0)
         geometry.materials.first?.diffuse.contents = UIColor.white
         
         let geometryNode = SCNNode(geometry: geometry)
-        geometryNode.position = SCNVector3(x*2, 1.5, y*2)
+        geometryNode.position = SCNVector3(Float(x)*2, 3, Float(y)*2)
         geometryNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
         geometryNode.physicsBody?.mass = 1.0
         geometryNode.physicsBody?.restitution = 0.25
@@ -666,7 +713,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         */
     }
     
-    func spawnPlayer(x: Float, y: Float) {
+    func spawnPlayer(x: Int, y: Int) {
         
         playerSpawnX = x
         playerSpawnY = y
@@ -681,7 +728,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
             geometry.materials.first?.writesToDepthBuffer = true
             
             playerNode = SCNNode(geometry: geometry)
-            playerNode.position = SCNVector3(x*2, 15, y*2)
+            playerNode.position = SCNVector3(Float(x)*2, 15, Float(y)*2)
             playerNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
             playerNode.physicsBody?.mass = 1.0
             playerNode.physicsBody?.restitution = 0.25
