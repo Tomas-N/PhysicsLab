@@ -73,7 +73,8 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         setupScene()
         setupConstraints()
         setupHUD(height: scnView.bounds.height, width: scnView.bounds.width)
-        setupWorld()
+        setupSurface()
+        setupWorldElements()
         setupToucMarker()
         setupLight()
       
@@ -301,7 +302,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
             pinchFactor += 0.02
             
             if (pinchStart.isLess(than: gestureRecognizer.scale)) {
-                if (cameraNode.position.y - pinchFactor > 4) {
+                if ((cameraNode.position.y - pinchFactor) > (playerNode.presentation.position.y + 3)) {
                     cameraNode.position = SCNVector3(x: cameraNode.position.x, y: cameraNode.position.y - pinchFactor, z: cameraNode.position.z)
                 }
             }
@@ -427,7 +428,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         lightNode.light!.shadowMode = SCNShadowMode.modulated
         lightNode.light!.shadowSampleCount = 2
         //lightNode.light!.shadowMapSize = CGSize(width: 128, height: 128)
-        lightNode.position = SCNVector3(x: playerNode.presentation.position.x, y: 10, z: playerNode.presentation.position.z)
+        lightNode.position = SCNVector3(x: playerNode.presentation.position.x, y: 20, z: playerNode.presentation.position.z)
         lightNode.eulerAngles = SCNVector3(-Float.pi/2, 0.0, 0.0)
         
         lightNode.constraints = [lightConstraint]
@@ -481,24 +482,21 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         
     }
     
+    /*
     func setupWorld() {
         
         var world: [String]!
         
         gameHUDInvalid = true
         
-        if let filepath = Bundle.main.path(forResource: "2", ofType: "world") {
+        if let filepath = Bundle.main.path(forResource: "3", ofType: "world") {
             do {
                 let contents = try String(contentsOfFile: filepath)
                 debugPrint(contents)
                 world = contents.components(separatedBy: "\n")
                 debugPrint(world.count)
                 
-                // Add the nodes for the gameboard
-                scnScene.rootNode.addChildNode(gameBoard)
                 gameBoard.addChildNode(gameBoardBoxes)
-                gameBoard.addChildNode(gameBoardFloor)
-                gameBoard.addChildNode(gameBoardWalls)
                 
                 gameWorld = CharacterMatrix(rows: world.count, columns: (world.max()?.count)!)
                 
@@ -542,6 +540,124 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
                         default:
                             debugPrint("Nothing to add... \(x) \(y)")
                         }
+                        x += 1 // Move one to the right
+                    }
+                    y += 1 // Move one down
+                    x = 0 // And to the start of the line
+                }
+                
+            } catch {
+                // contents could not be loaded
+            }
+        } else {
+            // example.txt not found!
+        }
+        
+    }
+    */
+    
+    func setupWorldElements() {
+        
+        var world: [String]!
+        
+        gameHUDInvalid = true
+        
+        if let filepath = Bundle.main.path(forResource: "3", ofType: "world") {
+            do {
+                let contents = try String(contentsOfFile: filepath)
+                debugPrint(contents)
+                world = contents.components(separatedBy: "\n")
+                debugPrint(world.count)
+                
+                gameBoard.addChildNode(gameBoardBoxes)
+                
+                gameWorld = CharacterMatrix(rows: world.count, columns: (world.max()?.count)!)
+                
+                // Store the world in the gameWorld matrix
+                var xG: Int = 0
+                var yG: Int = 0
+                for row in world {
+                    for col in row {
+                        gameWorld![yG,xG] = col
+                        xG += 1
+                    }
+                    xG = 0
+                    yG += 1
+                }
+                
+                debugPrint(gameWorld)
+                
+                // Create the word by cycling through each character
+                var x: Int = 0
+                var y: Int = 0
+                for row in world {
+                    for col in row {
+                        switch col {
+                         case "X":
+                            spawnPlayer(x: x, y: y)
+                        case "A":
+                            spawnBoxA(x: x, y: y)
+                            gameWhiteCount += 1
+                        default:
+                            debugPrint("Nothing to add... \(x) \(y)")
+                        }
+                        x += 1 // Move one to the right
+                    }
+                    y += 1 // Move one down
+                    x = 0 // And to the start of the line
+                }
+                
+            } catch {
+                // contents could not be loaded
+            }
+        } else {
+            // example.txt not found!
+        }
+        
+    }
+    
+    
+    func setupSurface() {
+        
+        var surface: [String]!
+        
+        // Add the nodes for the gameboard
+        scnScene.rootNode.addChildNode(gameBoard)
+        gameBoard.addChildNode(gameBoardFloor)
+        
+        if let filepath = Bundle.main.path(forResource: "3", ofType: "surface") {
+            do {
+                let contents = try String(contentsOfFile: filepath)
+                debugPrint(contents)
+                surface = contents.components(separatedBy: "\n")
+                debugPrint(surface.count)
+                
+                // Add the nodes for the gameboard)
+                
+                gameSurface = IntMatrix(rows: surface.count, columns: (surface.max()?.count)!)
+                
+                // Store the world in the gameWorld matrix
+                var xG: Int = 0
+                var yG: Int = 0
+                for row in surface {
+                    for col in row {
+                        if (col != Character(" ")) {
+                            gameSurface![yG,xG] = Int(String(col))!
+                        }
+                        xG += 1
+                    }
+                    xG = 0
+                    yG += 1
+                }
+                
+                debugPrint(gameSurface)
+                
+                // Create the word by cycling through each character
+                var x: Int = 0
+                var y: Int = 0
+                for row in surface {
+                    for _ in row {
+                        createSurface(x: x, y: y)
                         x += 1 // Move one to the right
                     }
                     y += 1 // Move one down
@@ -609,58 +725,180 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         }
         
     }
-    /*
+    
     func createFloor(x: Int, y: Int) {
         let geometryNode = createPlane(x: x, y: y, xOff: 0.0, yOff: 0.0, zOff: 0.0, angles: SCNVector3(-Float.pi/2,0,0), color: UIColor.blue)
         geometryNode.name = "Floor"
         gameBoardFloor.addChildNode(geometryNode)
     }
- */
     
-    func createFloor(x: Int, y: Int) {
+    func createSurface(x: Int, y: Int) {
    
+        //let _H: Float = 2.0
+        
+        let _h: Float = Float(gameSurface![y,x])
+        
         let indices: [UInt16] = [
             0, 1, 2,
-            0, 2, 3,
-            0, 3, 4,
-            0, 4, 5,
-            0, 5, 6,
-            0, 6, 7,
-            0, 7, 8,
-            0, 8, 1
+            2, 3, 0,
+            3, 4, 0,
+            4, 5, 0,
+            5, 6, 0,
+            6, 7, 0,
+            7, 8, 0,
+            8, 1, 0
         ]
         
-        let vertices: [SCNVector3] = []
+        var vertices: [SCNVector3] = []
         
         // Check if any surrounding area is one higher
-        var angled: Bool = false
+        var diffN: Float = 0.0
+        var diffS: Float = 0.0
+        var diffL: Float = 0.0
+        var diffR: Float = 0.0
         
-        // South side
-        if(gameSurface.rows > y) {
-            if(gameSurface[y+1,x] == (gameSurface[y,x] + 1)) { angled = true }
-        }
+        var diffNL: Float = 0.0
+        var diffSL: Float = 0.0
+        var diffSR: Float = 0.0
+        var diffNR: Float = 0.0
         
         // North side
-        if(y > 1) {
-            if(gameSurface[y-1,x] == (gameSurface[y,x] + 1)) { angled = true }
-        }
+        if(y > 0) { diffN = Float(gameSurface[y-1,x]) - _h }
         
         // Left side
-        if(x > 0) {
-            if(gameSurface [y,x-1] == (gameSurface[y,x] + 1)) { angled = true }
-        }
+        if(x > 0) { diffL = Float(gameSurface [y,x-1]) - _h }
+        
+        // South side
+        if(gameSurface.rows > y) { diffS = Float(gameSurface[y+1,x]) - _h}
         
         // Right side
-        if(x < (gameSurface.columns - 1)) {
-            if(gameSurface[y,x+1] == (gameSurface[y,x] + 1)) { angled = true }
-        }
+        if(x < (gameSurface.columns - 1)) { diffR = Float(gameSurface[y,x+1]) - _h }
         
-        if (angled) {
-            
+        // North left side
+        if(y > 0 && x > 0) { diffNL = Float(gameSurface[y-1,x-1]) - _h }
+        
+        // South left side
+        if(gameSurface.rows > y && x > 0) { diffSL = Float(gameSurface[y+1,x-1]) - _h }
+        
+        // South right side
+        if(gameSurface.rows > y && x < (gameSurface.columns - 1)) { diffSR = Float(gameSurface[y+1,x+1]) - _h }
+    
+        // North right side
+        if(y > 0 && x < (gameSurface.columns - 1)) { diffNR = Float(gameSurface[y-1,x+1]) - _h }
+        
+        /*
+        // Is this the highest point? If so make it flat
+        if(diffN <= 0 && diffS <= 0 && diffR <= 0 && diffL <= 0) {
+            let geometryNode = createPlane(x: x, y: y, xOff: 0.0, yOff: Float(_h * _H), zOff: 0.0, angles: SCNVector3(-Float.pi/2,0,0), color: UIColor.blue)
+            geometryNode.name = "Floor"
+            gameBoardFloor.addChildNode(geometryNode)
         } else {
-            
+         */
+        // Height differences, so we need to construct the geometry
+        // Middle point = half way between min and max
+        //let heights: [Float] = [diffN, diffL, diffS, diffR]
+        //let diff: Float = (heights.min()! - heights.max()!) / 2
+        
+        var left: Float = 0.0
+        if (diffL <= 0) {
+            if ([diffN, diffNL, diffSL, diffS].max()! > 0) {
+                left = ([diffN, diffNL, diffSL, diffS].max()!) / 2
+            } else {
+                left = 0.0
+            }
+        } else {
+            if  ([diffN, diffNL, diffSL, diffS].max()! > diffL) {
+                left = ([diffN, diffNL, diffSL, diffS].max()! - diffL) / 2 + diffL
+            } else {
+                left = diffL
+            }
         }
         
+        var color: UIColor = UIColor.blue
+        if (_h == 8) {
+            color = UIColor.red
+        }
+        var right: Float = 0.0
+        if (diffR <= 0) {
+            if ([diffN, diffNR, diffSR, diffS].max()! > 0) {
+                right = ([diffN, diffNR, diffSR, diffS].max()!) / 2
+            } else {
+                right = 0.0
+            }
+        } else {
+            if ([diffN, diffNR, diffSR, diffS].max()! > diffR) {
+                right = ([diffN, diffNR, diffSR, diffS].max()! - diffR) / 2 + diffR
+            } else {
+                right = diffR
+            }
+        }
+        
+        var north: Float = 0.0
+        if (diffN <= 0) {
+            if ([diffL, diffNL, diffR, diffNR].max()! > 0) {
+                north = ([diffL, diffNL, diffR, diffNR].max()!) / 2
+            } else {
+                north = 0.0
+            }
+        } else {
+            if ([diffL, diffNL, diffR, diffNR].max()! > diffN) {
+                north = ([diffL, diffNL, diffR, diffNR].max()! - diffN) / 2 + diffN
+            } else {
+                north = diffN
+            }
+        }
+
+        var south: Float = 0.0
+        if (diffS <= 0) {
+            if ([diffL, diffSL, diffR, diffSR].max()! > 0) {
+                south = ([diffL, diffSL, diffR, diffSR].max()!) / 2
+            } else {
+                south = 0.0
+            }
+        } else {
+            if ([diffL, diffSL, diffR, diffSR].max()! > diffS) {
+                south = ([diffL, diffSL, diffR, diffSR].max()! - diffS) / 2 + diffS
+            } else {
+                south = diffS
+            }
+        }
+        
+        // Center point
+        
+        let diffMax: Float = [diffN, diffS, diffR, diffL, diffNL, diffSL, diffSR, diffNR, 0].max()!
+        var diff: Float = 0.0
+        
+        if(diffMax != 0) { diff = diffMax / 2 }
+        
+        let northR = [diffN, diffR, diffNR, 0].max()!
+        let northL = [diffN, diffL, diffNL, 0].max()!
+        let southL = [diffS, diffL, diffSL, 0].max()!
+        let southR = [diffS, diffR, diffSR, 0].max()!
+        
+        // diff = (north + northL + left + southL + south + southR + right + northR) / 8
+        
+        vertices.append(SCNVector3(1, _h + diff, 1)) // Mid point
+        vertices.append(SCNVector3(2, _h + northR, 0)) // Top right
+        vertices.append(SCNVector3(1, _h + north, 0)) // Top
+        vertices.append(SCNVector3(0, _h + northL, 0)) // Top left
+        vertices.append(SCNVector3(0, _h + left, 1)) // Left
+        vertices.append(SCNVector3(0, _h + southL, 2)) // Bottom left
+        vertices.append(SCNVector3(1, _h + south, 2)) // Bottom
+        vertices.append(SCNVector3(2, _h + southR, 2)) // Bottom right
+        vertices.append(SCNVector3(2, _h + right, 1)) // Right
+        
+        let source = SCNGeometrySource(vertices: vertices)
+        let element = SCNGeometryElement(indices: indices, primitiveType: .triangles)
+        let geometry = SCNGeometry(sources: [source], elements: [element])
+        geometry.materials.first?.diffuse.contents = color
+        geometry.materials.first?.locksAmbientWithDiffuse = true
+        let geometryNode = SCNNode(geometry: geometry)
+        geometryNode.position = SCNVector3(Float(x)*2-1, 0, Float(y)*2-1)
+        geometryNode.physicsBody = SCNPhysicsBody(type: .static, shape: nil)
+        geometryNode.physicsBody!.collisionBitMask = CollisionTypes.all.rawValue
+        geometryNode.castsShadow = false
+        geometryNode.name = "Floor"
+        gameBoardFloor.addChildNode(geometryNode)
     }
     
     func createPlane(x: Int, y: Int, xOff: Float, yOff: Float, zOff: Float, angles: SCNVector3, color: UIColor) -> SCNNode {
@@ -694,7 +932,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         geometry.materials.first?.diffuse.contents = UIColor.white
         
         let geometryNode = SCNNode(geometry: geometry)
-        geometryNode.position = SCNVector3(Float(x)*2, 3, Float(y)*2)
+        geometryNode.position = SCNVector3(Float(x)*2, 11, Float(y)*2)
         geometryNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
         geometryNode.physicsBody?.mass = 1.0
         geometryNode.physicsBody?.restitution = 0.25
