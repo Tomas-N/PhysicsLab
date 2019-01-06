@@ -73,8 +73,8 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         setupScene()
         setupConstraints()
         setupHUD(height: scnView.bounds.height, width: scnView.bounds.width)
-        setupSurface()
-        setupWorldElements()
+        setupSurface(surfaceN: "1")
+        setupWorldElements(worldN: "1")
         setupToucMarker()
         setupLight()
       
@@ -529,13 +529,13 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
     }
     */
     
-    func setupWorldElements() {
+    func setupWorldElements(worldN: String) {
         
         var world: [String]!
         
         gameHUDInvalid = true
         
-        if let filepath = Bundle.main.path(forResource: "3", ofType: "world") {
+        if let filepath = Bundle.main.path(forResource: worldN, ofType: "world") {
             do {
                 let contents = try String(contentsOfFile: filepath)
                 debugPrint(contents)
@@ -590,7 +590,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
     }
     
     
-    func setupSurface() {
+    func setupSurface(surfaceN: String) {
         
         var surface: [String]!
         
@@ -598,7 +598,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         scnScene.rootNode.addChildNode(gameBoard)
         gameBoard.addChildNode(gameBoardFloor)
         
-        if let filepath = Bundle.main.path(forResource: "3", ofType: "surface") {
+        if let filepath = Bundle.main.path(forResource: surfaceN, ofType: "surface") {
             do {
                 let contents = try String(contentsOfFile: filepath)
                 debugPrint(contents)
