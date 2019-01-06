@@ -199,9 +199,13 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
                 touchMarkerNode.runAction(SCNAction.rotate(toAxisAngle: SCNVector4(1,1,1,  touchMarkerNode.rotation.w + Float.pi), duration: 1.0))
                 
                 // Get the diff between touch point and the player
-                let pos: SCNVector3 = playerNode.presentation.worldPosition
-                let diffx = Float(p.x) - scnView.projectPoint(pos).x
-                let diffz = Float(p.y) - scnView.projectPoint(pos).y
+                //let pos: SCNVector3 = playerNode.presentation.worldPosition
+                //let diffx = Float(p.x) - scnView.projectPoint(pos).x
+                //let diffz = Float(p.y) - scnView.projectPoint(pos).y
+                
+                // Get the diff between touh point and original touch point
+                let diffx: Float = Float(p.x) - Float(startPosition.x)
+                let diffz: Float = Float(p.y) - Float(startPosition.y)
                 
                 // Se the force based on the distance
                 let diffmax = Float.maximum(abs(diffx), abs(diffz))
@@ -332,6 +336,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
             // get its material
             let material = result.node.geometry!.firstMaterial!
             
+            // Below for bebugging purposes!
             // highlight it
             SCNTransaction.begin()
             SCNTransaction.animationDuration = 0.5
@@ -348,41 +353,9 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
             material.emission.intensity = 10.00
             SCNTransaction.commit()
             
-            if (result.node.name == "Box" || result.node.name == "Player") {
-                // move it
-                let randomX = Float.random(in: -2.00 ... 2.00)
-                let randomY = Float.random(in:  1.00 ... 7.00)
-                let randomZ = Float.random(in: -2.00 ... 2.00)
-
-                let force = SCNVector3(randomX, randomY, randomZ)
-                
-                result.node.physicsBody?.applyForce(force, asImpulse: true)
-            } else if (result.node.name == "Button") {
-                // rotate it
-                
-                result.node.runAction(SCNAction.rotate(toAxisAngle: SCNVector4(1,1,1, result.node.rotation.w + Float.pi), duration: 1.0))
-                
-                var geometry: SCNGeometry
-                var geometryNode: SCNNode
-                
-                let randomX = Float.random(in: -1.00 ... 1.00)
-                let randomY = Float.random(in:  1.00 ... 7.00)
-                let randomZ = Float.random(in: -1.00 ... 1.00)
-                
-                geometry = SCNBox(width: 1.0, height: 1.0, length: 1.0, chamferRadius: 0.0)
-                geometryNode = SCNNode(geometry: geometry)
-                geometryNode.position = SCNVector3(randomX, randomY, randomZ)
-                geometryNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
-                geometryNode.physicsBody?.mass = 1.0
-                geometryNode.physicsBody?.restitution = 0.25
-                geometryNode.physicsBody?.friction = 0.75
-                geometryNode.physicsBody!.contactTestBitMask = CollisionTypes.player.rawValue
-                geometryNode.physicsBody!.collisionBitMask = CollisionTypes.all.rawValue
-                
-                geometryNode.name = "Box"
-                
-                scnScene.rootNode.addChildNode(geometryNode)
-            }
+            // Emit force field from cube
+            // TODO
+            
         }
     }
     
