@@ -57,6 +57,8 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
     var playerXYZConstraint: SCNTransformConstraint! // Exactly on top of player, constant Y
     
     var hitBoxes: [SCNNode] = [] // The nodes hit during the physics simulation
+
+    var particleSystem: SCNParticleSystem!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -65,11 +67,11 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         setupScene()
         setupConstraints()
         setupHUD(height: scnView.bounds.height, width: scnView.bounds.width)
-        setupSurface(surfaceN: "2")
-        setupWorldElements(worldN: "2")
+        setupSurface(surfaceN: "3")
+        setupWorldElements(worldN: "3")
         setupToucMarker()
         setupLight()
-      
+        particleSystem = SCNParticleSystem(named: "Hit1", inDirectory: nil)
         
         // add a tap gesture recognizer
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
@@ -128,8 +130,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         }
         
         // Boom effect
-        let particleSystem = SCNParticleSystem(named: "Hit1", inDirectory: nil)
-        hitBox.addParticleSystem(particleSystem!)
+        hitBox.addParticleSystem(self.particleSystem)
         
         /*
         // Reduce size
@@ -358,7 +359,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
     
     func setupView()  {
         scnView = (self.view as! SCNView)
-        scnView.showsStatistics = false
+        scnView.showsStatistics = true
         scnView.allowsCameraControl = false
         scnView.delegate = self
         scnView.antialiasingMode = .multisampling4X
@@ -370,13 +371,14 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
     }
     
     func setupLight() {
+        
         // create and add an ambient light to the scene
         let ambientLightNode = SCNNode()
         ambientLightNode.light = SCNLight()
         ambientLightNode.light!.type = .ambient
         ambientLightNode.light!.color = UIColor.darkGray
         scnScene.rootNode.addChildNode(ambientLightNode)
-        
+ 
         // Add a spotlight
         lightNode = SCNNode()
         lightNode.light = SCNLight()
@@ -1035,8 +1037,8 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         // Keep constrained node on top of player
         lightConstraint = SCNTransformConstraint(inWorldSpace: true, with: { (node, matrix) in
             
-            let diffX: Float = self.playerNode.presentation.position.x - 1.5 - node.presentation.position.x
-            let diffZ = self.playerNode.presentation.position.z - 1.5 -  node.presentation.position.z
+            let diffX: Float = self.playerNode.presentation.position.x + 2 - node.presentation.position.x
+            let diffZ = self.playerNode.presentation.position.z + 2 -  node.presentation.position.z
             
             let newMatrix = SCNMatrix4Translate(matrix, diffX, 0, diffZ)
             
