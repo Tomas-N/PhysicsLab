@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		40329FC921E235E700FA1348 /* whiteDot.png in Resources */ = {isa = PBXBuildFile; fileRef = 40329FC821E235E700FA1348 /* whiteDot.png */; };
+		40329FCB21E2361500FA1348 /* Hit1.scnp in Resources */ = {isa = PBXBuildFile; fileRef = 40329FCA21E2361500FA1348 /* Hit1.scnp */; };
 		403AF9FE21E0B1E200C4844B /* Matrix.swift in Sources */ = {isa = PBXBuildFile; fileRef = 403AF9FD21E0B1E200C4844B /* Matrix.swift */; };
 		403AFA0021E0D7DA00C4844B /* 2.world in Resources */ = {isa = PBXBuildFile; fileRef = 403AF9FF21E0D7DA00C4844B /* 2.world */; };
 		403AFA0221E1045100C4844B /* 3.surface in Resources */ = {isa = PBXBuildFile; fileRef = 403AFA0121E1045100C4844B /* 3.surface */; };
@@ -45,6 +47,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		40329FC821E235E700FA1348 /* whiteDot.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = whiteDot.png; sourceTree = "<group>"; };
+		40329FCA21E2361500FA1348 /* Hit1.scnp */ = {isa = PBXFileReference; lastKnownFileType = file.scp; path = Hit1.scnp; sourceTree = "<group>"; };
 		403AF9FD21E0B1E200C4844B /* Matrix.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Matrix.swift; sourceTree = "<group>"; };
 		403AF9FF21E0D7DA00C4844B /* 2.world */ = {isa = PBXFileReference; lastKnownFileType = text; path = 2.world; sourceTree = "<group>"; };
 		403AFA0121E1045100C4844B /* 3.surface */ = {isa = PBXFileReference; lastKnownFileType = text; path = 3.surface; sourceTree = "<group>"; };
@@ -96,13 +100,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		403AF9FC21E0A94600C4844B /* Bitmap */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Bitmap;
-			sourceTree = "<group>";
-		};
 		407C1FAB21DD0F9C006BD9F1 /* Worlds */ = {
 			isa = PBXGroup;
 			children = (
@@ -119,8 +116,10 @@
 		407C1FAC21DD0FD8006BD9F1 /* Particle */ = {
 			isa = PBXGroup;
 			children = (
+				40329FC821E235E700FA1348 /* whiteDot.png */,
 				4068C70421DD130B00AC4FD7 /* Fire1.scnp */,
 				4068C70321DD130B00AC4FD7 /* spark.png */,
+				40329FCA21E2361500FA1348 /* Hit1.scnp */,
 			);
 			path = Particle;
 			sourceTree = "<group>";
@@ -148,7 +147,6 @@
 		40B04D8B21D6A2EC00977D7F /* PhysicsLab */ = {
 			isa = PBXGroup;
 			children = (
-				403AF9FC21E0A94600C4844B /* Bitmap */,
 				407C1FAC21DD0FD8006BD9F1 /* Particle */,
 				407C1FAB21DD0F9C006BD9F1 /* Worlds */,
 				40B04D8C21D6A2EC00977D7F /* AppDelegate.swift */,
@@ -296,7 +294,9 @@
 				40B04D9621D6A2ED00977D7F /* Assets.xcassets in Resources */,
 				403AFA0421E1049500C4844B /* 3.world in Resources */,
 				403AFA0021E0D7DA00C4844B /* 2.world in Resources */,
+				40329FCB21E2361500FA1348 /* Hit1.scnp in Resources */,
 				40B04D9421D6A2EC00977D7F /* Main.storyboard in Resources */,
+				40329FC921E235E700FA1348 /* whiteDot.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

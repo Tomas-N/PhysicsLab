@@ -39,9 +39,6 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
     var gameHUDRedLabel: SKLabelNode!
     var gameHUDMovesLabel: SKLabelNode!
     
-    var gameWorld: CharacterMatrix!
-    var gameSurface: IntMatrix!
-    
     var gameHUDInvalid: Bool = false
     
     var touchMarkerNode: SCNNode!
@@ -68,8 +65,8 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         setupScene()
         setupConstraints()
         setupHUD(height: scnView.bounds.height, width: scnView.bounds.width)
-        setupSurface(surfaceN: "2")
-        setupWorldElements(worldN: "2")
+        setupSurface(surfaceN: "3")
+        setupWorldElements(worldN: "3")
         setupToucMarker()
         setupLight()
       
@@ -116,26 +113,23 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
     
     func physicsWorld(_ world: SCNPhysicsWorld, didBegin contact: SCNPhysicsContact) {
         
+        var hitBox: SCNNode!
+        
         if (contact.nodeA.name == "Box" && contact.nodeB.name == "Player") {
-            if (hitBoxes.contains(contact.nodeA) == false) {
-                hitBoxes.append(contact.nodeA)
-            }
+            hitBox = contact.nodeA
         } else if (contact.nodeB.name == "Box" && contact.nodeA.name == "Player") {
-            if (hitBoxes.contains(contact.nodeB) == false) {
-                hitBoxes.append(contact.nodeB)
-            }
+            hitBox = contact.nodeB
         } else {
             return
         }
     
-        /*
+        if (hitBoxes.contains(hitBox) == false) {
+            hitBoxes.append(hitBox)
+        }
+        
         // Boom effect
-        let particleSystem = SCNParticleSystem(named: "Fire1", inDirectory: nil)
-        let particleNode = SCNNode()
-        particleNode.addParticleSystem(particleSystem!)
-        particleNode.position = contact.nodeA.presentation.position
-        scnScene.rootNode.addChildNode(particleNode)
-        */
+        let particleSystem = SCNParticleSystem(named: "Hit1", inDirectory: nil)
+        hitBox.addParticleSystem(particleSystem!)
         
         /*
         // Reduce size
@@ -539,21 +533,19 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
                 
                 gameBoard.addChildNode(gameBoardBoxes)
                 
-                gameWorld = CharacterMatrix(rows: world.count, columns: (world.max()?.count)!)
+                gameRun.gameWorld = CharacterMatrix(rows: world.count, columns: (world.max()?.count)!)
                 
                 // Store the world in the gameWorld matrix
                 var xG: Int = 0
                 var yG: Int = 0
                 for row in world {
                     for col in row {
-                        gameWorld![yG,xG] = col
+                        gameRun.gameWorld![yG,xG] = col
                         xG += 1
                     }
                     xG = 0
                     yG += 1
                 }
-                
-                debugPrint(gameWorld)
                 
                 // Create the word by cycling through each character
                 var x: Int = 0
@@ -602,7 +594,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
                 
                 // Add the nodes for the gameboard)
                 
-                gameSurface = IntMatrix(rows: surface.count, columns: (surface.max()?.count)!)
+                gameRun.gameSurface = IntMatrix(rows: 1000, columns: 1000)
                 
                 // Store the world in the gameWorld matrix
                 var xG: Int = 0
@@ -610,15 +602,13 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
                 for row in surface {
                     for col in row {
                         if (col != Character(" ")) {
-                            gameSurface![yG,xG] = Int(String(col))!
+                            gameRun.gameSurface![yG,xG] = Int(String(col))!
                         }
                         xG += 1
                     }
                     xG = 0
                     yG += 1
                 }
-                
-                debugPrint(gameSurface)
                 
                 // Create the word by cycling through each character
                 var x: Int = 0
@@ -642,6 +632,8 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
     }
     
     func createWall(x: Int, y: Int) {
+        
+        let gameWorld: CharacterMatrix! = gameRun.gameWorld
         
         // top
         var geometryNode = createPlane(x: x, y: y, xOff: 0.0, yOff: 2.0, zOff: 0.0, angles: SCNVector3(-Float.pi/2,0,0), color: UIColor.darkGray)
@@ -703,6 +695,8 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
     func createSurface(x: Int, y: Int) {
    
         //let _H: Float = 2.0
+        
+        let gameSurface: IntMatrix! = gameRun.gameSurface
         
         let _h: Float = Float(gameSurface![y,x])
         
@@ -896,10 +890,10 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
     
     func spawnBoxA(x: Int, y: Int) {
         
-        let geometry = SCNBox(width: 1.0, height: 1.0, length: 1.0, chamferRadius: 0.0)
-        geometry.materials.first?.diffuse.contents = UIColor.white
+        let boxGeometry = SCNBox(width: 1.0, height: 1.0, length: 1.0, chamferRadius: 0.0)
+        boxGeometry.materials.first?.diffuse.contents = UIColor.white
         
-        let geometryNode = SCNNode(geometry: geometry)
+        let geometryNode = SCNNode(geometry: boxGeometry)
         geometryNode.position = SCNVector3(Float(x)*2, 11, Float(y)*2)
         geometryNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
         geometryNode.physicsBody?.mass = 1.0
@@ -914,7 +908,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         gameBoardBoxes.addChildNode(geometryNode)
         
         /*
-        let action = SCNAction.repeatForever(SCNAction.rotate(by: .pi, around: SCNVector3(0, 1, 0), duration: 5))
+        let action = SCNAction.rotate(by: .pi, around: SCNVector3(0, 1, 0), duration: 5)
         geometryNode.runAction(action)
         */
     }

@@ -19,6 +19,9 @@ class Game {
     private var gameRedCount: Int = 0
     private var gameMoves: Int = 0
     
+    var gameWorld: CharacterMatrix!
+    var gameSurface: IntMatrix!
+    
     var playerSpawnPosition: PlayerPosition
     
     init() {
