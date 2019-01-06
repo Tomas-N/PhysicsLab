@@ -13,6 +13,7 @@
 		403AFA0421E1049500C4844B /* 3.world in Resources */ = {isa = PBXBuildFile; fileRef = 403AFA0321E1049500C4844B /* 3.world */; };
 		4068002821E2109F001BBF32 /* 1.surface in Resources */ = {isa = PBXBuildFile; fileRef = 4068002721E2109F001BBF32 /* 1.surface */; };
 		4068002A21E210C3001BBF32 /* 2.surface in Resources */ = {isa = PBXBuildFile; fileRef = 4068002921E210C3001BBF32 /* 2.surface */; };
+		4068002C21E223A7001BBF32 /* Game.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4068002B21E223A7001BBF32 /* Game.swift */; };
 		4068C70521DD130C00AC4FD7 /* spark.png in Resources */ = {isa = PBXBuildFile; fileRef = 4068C70321DD130B00AC4FD7 /* spark.png */; };
 		4068C70621DD130C00AC4FD7 /* Fire1.scnp in Resources */ = {isa = PBXBuildFile; fileRef = 4068C70421DD130B00AC4FD7 /* Fire1.scnp */; };
 		4068C70821DD15EA00AC4FD7 /* 1.world in Resources */ = {isa = PBXBuildFile; fileRef = 4068C70721DD15EA00AC4FD7 /* 1.world */; };
@@ -50,6 +51,7 @@
 		403AFA0321E1049500C4844B /* 3.world */ = {isa = PBXFileReference; lastKnownFileType = text; path = 3.world; sourceTree = "<group>"; };
 		4068002721E2109F001BBF32 /* 1.surface */ = {isa = PBXFileReference; lastKnownFileType = text; path = 1.surface; sourceTree = "<group>"; };
 		4068002921E210C3001BBF32 /* 2.surface */ = {isa = PBXFileReference; lastKnownFileType = text; path = 2.surface; sourceTree = "<group>"; };
+		4068002B21E223A7001BBF32 /* Game.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Game.swift; sourceTree = "<group>"; };
 		4068C70321DD130B00AC4FD7 /* spark.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = spark.png; sourceTree = "<group>"; };
 		4068C70421DD130B00AC4FD7 /* Fire1.scnp */ = {isa = PBXFileReference; lastKnownFileType = file.scp; path = Fire1.scnp; sourceTree = "<group>"; };
 		4068C70721DD15EA00AC4FD7 /* 1.world */ = {isa = PBXFileReference; lastKnownFileType = text; path = 1.world; sourceTree = "<group>"; };
@@ -157,6 +159,7 @@
 				40B04D9A21D6A2ED00977D7F /* Info.plist */,
 				40B04DBC21D6AD7000977D7F /* ShapeType.swift */,
 				403AF9FD21E0B1E200C4844B /* Matrix.swift */,
+				4068002B21E223A7001BBF32 /* Game.swift */,
 			);
 			path = PhysicsLab;
 			sourceTree = "<group>";
@@ -319,6 +322,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				403AF9FE21E0B1E200C4844B /* Matrix.swift in Sources */,
+				4068002C21E223A7001BBF32 /* Game.swift in Sources */,
 				40B04D9121D6A2EC00977D7F /* GameViewController.swift in Sources */,
 				40B04DBD21D6AD7000977D7F /* ShapeType.swift in Sources */,
 				40B04D8D21D6A2EC00977D7F /* AppDelegate.swift in Sources */,

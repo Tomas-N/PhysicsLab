@@ -39,10 +39,6 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
     var gameHUDRedLabel: SKLabelNode!
     var gameHUDMovesLabel: SKLabelNode!
     
-    var gameWhiteCount: Int = 0
-    var gameRedCount: Int = 0
-    var gameMoves: Int = 0
-    
     var gameWorld: CharacterMatrix!
     var gameSurface: IntMatrix!
     
@@ -55,8 +51,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
     var touchD2: SCNNode!
     var touchD3: SCNNode!
     
-    var playerSpawnX: Int!
-    var playerSpawnY: Int!
+    var gameRun = Game()
     
     var cameraConstraint: SCNTransformConstraint! // Exactly on top, changing Y
     var cameraOutOfBounds: Bool = false
@@ -73,8 +68,8 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         setupScene()
         setupConstraints()
         setupHUD(height: scnView.bounds.height, width: scnView.bounds.width)
-        setupSurface(surfaceN: "1")
-        setupWorldElements(worldN: "1")
+        setupSurface(surfaceN: "2")
+        setupWorldElements(worldN: "2")
         setupToucMarker()
         setupLight()
       
@@ -274,7 +269,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
                     let position = SCNVector3(0, 0, 0)
                     playerNode.physicsBody?.applyForce(forceVector, at: position, asImpulse: true)
 
-                    gameMoves += 1
+                    gameRun.addMove()
                     gameHUDInvalid = true
                 }
             } else if (panGameBoard) {
@@ -570,7 +565,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
                             spawnPlayer(x: x, y: y)
                         case "A":
                             spawnBoxA(x: x, y: y)
-                            gameWhiteCount += 1
+                            gameRun.addBox()
                         default:
                             debugPrint("Nothing to add... \(x) \(y)")
                         }
@@ -926,11 +921,10 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
     
     func spawnPlayer(x: Int, y: Int) {
         
-        playerSpawnX = x
-        playerSpawnY = y
+        gameRun.setPlayerSpawnPosition(x: x, y: y)
         
         // Add player if player does not exist
-        if(scnScene.rootNode.childNode(withName: "Player", recursively: false) == nil) {
+        if(scnScene.rootNode.childNode(withName: "Player", recursively: true) == nil) {
             
             let geometry = SCNBox(width: 1.0, height: 1.0, length: 1.0, chamferRadius: 0.0)
             geometry.materials.first?.diffuse.contents = UIColor.green
@@ -1083,7 +1077,7 @@ extension GameViewController: SCNSceneRendererDelegate {
         
         if(playerNode.presentation.position.y < -8) {
             // Player dropped below sufrace, respawn
-            spawnPlayer(x: playerSpawnX, y: playerSpawnY)
+            spawnPlayer(x: gameRun.getPlayerSpawnPosition().x, y: gameRun.getPlayerSpawnPosition().y)
             
         }
         
@@ -1091,8 +1085,7 @@ extension GameViewController: SCNSceneRendererDelegate {
             let color: UIColor = node.geometry?.materials.first?.diffuse.contents as! UIColor
             if (color != UIColor.red) {
                 node.geometry?.materials.first?.diffuse.contents = UIColor.red
-                gameWhiteCount -= 1
-                gameRedCount += 1
+                gameRun.boxHit()
                 gameHUDInvalid = true
             }
         }
@@ -1107,10 +1100,9 @@ extension GameViewController: SCNSceneRendererDelegate {
         
         if (gameHUDInvalid) {
             gameHUDInvalid = false
-            gameHUDWhiteLabel.text = String(gameWhiteCount)
-            gameHUDRedLabel.text = String(gameRedCount)
-            gameHUDMovesLabel.text = String(gameMoves)
-            
+            gameHUDWhiteLabel.text = String(gameRun.getWhiteCount())
+            gameHUDRedLabel.text = String(gameRun.getRedCount())
+            gameHUDMovesLabel.text = String(gameRun.getMoves())
         }
     }
 }
