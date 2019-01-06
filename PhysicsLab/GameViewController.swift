@@ -831,10 +831,11 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         
         // Center point
         
-        let diffMax: Float = [diffN, diffS, diffR, diffL, diffNL, diffSL, diffSR, diffNR, 0].max()!
+        let diffMax: Float = [diffN, diffS, diffR, diffL, diffNL, diffSL, diffSR, diffNR].max()!
         var diff: Float = 0.0
         
         if(diffMax != 0) { diff = diffMax / 2 }
+        if(diffMax < 0) { diff = -diffMax / 2 }
         
         let northR = [diffN, diffR, diffNR, 0].max()!
         let northL = [diffN, diffL, diffNL, 0].max()!
