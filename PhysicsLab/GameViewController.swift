@@ -65,8 +65,8 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         setupScene()
         setupConstraints()
         setupHUD(height: scnView.bounds.height, width: scnView.bounds.width)
-        setupSurface(surfaceN: "3")
-        setupWorldElements(worldN: "3")
+        setupSurface(surfaceN: "2")
+        setupWorldElements(worldN: "2")
         setupToucMarker()
         setupLight()
       
@@ -533,7 +533,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
                 
                 gameBoard.addChildNode(gameBoardBoxes)
                 
-                gameRun.gameWorld = CharacterMatrix(rows: world.count, columns: (world.max()?.count)!)
+                gameRun.gameWorld = CharacterMatrix(rows: 1000, columns: 1000)
                 
                 // Store the world in the gameWorld matrix
                 var xG: Int = 0
@@ -615,7 +615,9 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
                 var y: Int = 0
                 for row in surface {
                     for _ in row {
-                        createSurface(x: x, y: y)
+                        if(gameRun.gameSurface![y,x] > -1) {
+                            createSurface(x: x, y: y)
+                        }
                         x += 1 // Move one to the right
                     }
                     y += 1 // Move one down
