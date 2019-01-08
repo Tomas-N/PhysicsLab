@@ -67,8 +67,8 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         setupScene()
         setupConstraints()
         setupHUD(height: scnView.bounds.height, width: scnView.bounds.width)
-        setupSurface(surfaceN: "3")
-        setupWorldElements(worldN: "3")
+        setupSurface(surfaceN: "4")
+        setupWorldElements(worldN: "4")
         setupToucMarker()
         setupLight()
         particleSystem = SCNParticleSystem(named: "Hit1", inDirectory: nil)
@@ -597,6 +597,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
                 // Add the nodes for the gameboard)
                 
                 gameRun.gameSurface = IntMatrix(rows: 1000, columns: 1000)
+                gameRun.smoothSurface = IntMatrix(rows: 1000, columns: 1000)
                 
                 // Store the world in the gameWorld matrix
                 var xG: Int = 0
@@ -618,7 +619,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
                 for row in surface {
                     for _ in row {
                         if(gameRun.gameSurface![y,x] > -1) {
-                            createSurface(x: x, y: y)
+                            createSurface(x: x, y: y, mode: 2, mul: 1.0)
                         }
                         x += 1 // Move one to the right
                     }
@@ -696,9 +697,12 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         gameBoardFloor.addChildNode(geometryNode)
     }
     
-    func createSurface(x: Int, y: Int) {
+    // mode = 0, raise up surface around
+    // mode = 1, raise up only the one brick
+    // mode = height multiplier (default 1.0)
+    
+    func createSurface(x: Int, y: Int, mode: Int, mul: Float) {
    
-        //let _H: Float = 2.0
         
         let gameSurface: IntMatrix! = gameRun.gameSurface
         
@@ -752,107 +756,197 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         // North right side
         if(y > 0 && x < (gameSurface.columns - 1)) { diffNR = Float(gameSurface[y-1,x+1]) - _h }
         
+        
+        // Debug entry
+        let color: UIColor = UIColor.blue
         /*
-        // Is this the highest point? If so make it flat
-        if(diffN <= 0 && diffS <= 0 && diffR <= 0 && diffL <= 0) {
-            let geometryNode = createPlane(x: x, y: y, xOff: 0.0, yOff: Float(_h * _H), zOff: 0.0, angles: SCNVector3(-Float.pi/2,0,0), color: UIColor.blue)
-            geometryNode.name = "Floor"
-            gameBoardFloor.addChildNode(geometryNode)
-        } else {
-         */
-        // Height differences, so we need to construct the geometry
-        // Middle point = half way between min and max
-        //let heights: [Float] = [diffN, diffL, diffS, diffR]
-        //let diff: Float = (heights.min()! - heights.max()!) / 2
-        
-        var left: Float = 0.0
-        if (diffL <= 0) {
-            if ([diffN, diffNL, diffSL, diffS].max()! > 0) {
-                left = ([diffN, diffNL, diffSL, diffS].max()!) / 2
-            } else {
-                left = 0.0
-            }
-        } else {
-            if  ([diffN, diffNL, diffSL, diffS].max()! > diffL) {
-                left = ([diffN, diffNL, diffSL, diffS].max()! - diffL) / 2 + diffL
-            } else {
-                left = diffL
-            }
-        }
-        
-        var color: UIColor = UIColor.blue
         if (_h == 8) {
             color = UIColor.red
         }
+        */
+        
+        var left: Float = 0.0
         var right: Float = 0.0
-        if (diffR <= 0) {
-            if ([diffN, diffNR, diffSR, diffS].max()! > 0) {
-                right = ([diffN, diffNR, diffSR, diffS].max()!) / 2
-            } else {
-                right = 0.0
-            }
-        } else {
-            if ([diffN, diffNR, diffSR, diffS].max()! > diffR) {
-                right = ([diffN, diffNR, diffSR, diffS].max()! - diffR) / 2 + diffR
-            } else {
-                right = diffR
-            }
-        }
-        
         var north: Float = 0.0
-        if (diffN <= 0) {
-            if ([diffL, diffNL, diffR, diffNR].max()! > 0) {
-                north = ([diffL, diffNL, diffR, diffNR].max()!) / 2
-            } else {
-                north = 0.0
-            }
-        } else {
-            if ([diffL, diffNL, diffR, diffNR].max()! > diffN) {
-                north = ([diffL, diffNL, diffR, diffNR].max()! - diffN) / 2 + diffN
-            } else {
-                north = diffN
-            }
-        }
-
         var south: Float = 0.0
-        if (diffS <= 0) {
-            if ([diffL, diffSL, diffR, diffSR].max()! > 0) {
-                south = ([diffL, diffSL, diffR, diffSR].max()!) / 2
+        
+        var northR: Float = 0.0
+        var northL: Float = 0.0
+        var southL: Float = 0.0
+        var southR: Float = 0.0
+        
+        var diff: Float = 0.0 // Center point - renme to center
+        
+        if (mode == 1) {
+            
+            if (diffL <= 0) {
+                if ([diffN, diffNL, diffSL, diffS].max()! > 0) {
+                    left = ([diffN, diffNL, diffSL, diffS].max()!) / 2
+                } else {
+                    left = 0.0
+                }
             } else {
-                south = 0.0
+                if  ([diffN, diffNL, diffSL, diffS].max()! > diffL) {
+                    left = ([diffN, diffNL, diffSL, diffS].max()! - diffL) / 2 + diffL
+                } else {
+                    left = diffL
+                }
             }
-        } else {
-            if ([diffL, diffSL, diffR, diffSR].max()! > diffS) {
-                south = ([diffL, diffSL, diffR, diffSR].max()! - diffS) / 2 + diffS
+            
+            if (diffR <= 0) {
+                if ([diffN, diffNR, diffSR, diffS].max()! > 0) {
+                    right = ([diffN, diffNR, diffSR, diffS].max()!) / 2
+                } else {
+                    right = 0.0
+                }
             } else {
-                south = diffS
+                if ([diffN, diffNR, diffSR, diffS].max()! > diffR) {
+                    right = ([diffN, diffNR, diffSR, diffS].max()! - diffR) / 2 + diffR
+                } else {
+                    right = diffR
+                }
             }
+            
+            
+            if (diffN <= 0) {
+                if ([diffL, diffNL, diffR, diffNR].max()! > 0) {
+                    north = ([diffL, diffNL, diffR, diffNR].max()!) / 2
+                } else {
+                    north = 0.0
+                }
+            } else {
+                if ([diffL, diffNL, diffR, diffNR].max()! > diffN) {
+                    north = ([diffL, diffNL, diffR, diffNR].max()! - diffN) / 2 + diffN
+                } else {
+                    north = diffN
+                }
+            }
+
+            if (diffS <= 0) {
+                if ([diffL, diffSL, diffR, diffSR].max()! > 0) {
+                    south = ([diffL, diffSL, diffR, diffSR].max()!) / 2
+                } else {
+                    south = 0.0
+                }
+            } else {
+                if ([diffL, diffSL, diffR, diffSR].max()! > diffS) {
+                    south = ([diffL, diffSL, diffR, diffSR].max()! - diffS) / 2 + diffS
+                } else {
+                    south = diffS
+                }
+            
+            }
+            
+            // Center point
+            
+            let diffMax: Float = [diffN, diffS, diffR, diffL, diffNL, diffSL, diffSR, diffNR].max()!
+            
+            if(diffMax != 0) { diff = diffMax / 2 }
+            if(diffMax < 0) { diff = -diffMax / 2 } // Pointy end to highest peak
+            
+            northR = [diffN, diffR, diffNR, 0].max()!
+            northL = [diffN, diffL, diffNL, 0].max()!
+            southL = [diffS, diffL, diffSL, 0].max()!
+            southR = [diffS, diffR, diffSR, 0].max()!
+            
+        } else if (mode == 2) {
+            
+            diff = 0.0
+           
+            // Corner needs to be the lowest
+            northR = [diffN, diffR, diffNR, 0].min()!
+            northL = [diffN, diffL, diffNL, 0].min()!
+            southL = [diffS, diffL, diffSL, 0].min()!
+            southR = [diffS, diffR, diffSR, 0].min()!
+            
+            
+            // Go down and meet the lower level
+            if (diffR < 0) {right = diffR}
+            if (diffL < 0) {left = diffL}
+            if (diffN < 0) {north = diffN}
+            if (diffS < 0) {south = diffS}
+            
+            // Detect slope
+            /*
+            if ((diffL < 0 && diffR >= 0) ||
+                (diffR < 0 && diffL >= 0) ||
+                (diffN < 0 && diffS >= 0) ||
+                (diffS < 0 && diffN >= 0)) {
+            */
+            /*
+            // Smooth out height if there is 1 / 0 slope
+            if (( diffL == -1 && diffR == 0) ||
+                ( diffR == -1 && diffL == 0) ||
+                ( diffN == -1 && diffS == 0) ||
+                ( diffS == -1 && diffN == 0) ||
+                ( diffL == -1 && diffR == 0) ||
+                ( diffNL == -1 && diffSR == 0) ||
+                ( diffSR == -1 && diffNL == 0) ||
+                ( diffNR == -1 && diffSL == 0) ||
+                ( diffSL == -1 && diffNR == 0)) {
+                
+                //
+                if (diffR == 0) {
+                    if (diffNR < diffSR) { right = -0.5 }
+                    if (diffNR > diffSR) { right = -0.5 }
+                    
+                }
+                if (diffS == 0) {
+                    
+                    if (diffSL < diffSR) { south = -0.5 }
+                    if (diffSL > diffSR) { south = -0.5 }
+                    
+                }
+                
+                
+                if (diffL == 0) {
+                    if (diffNL < diffSL) { left = -0.5 }
+                    if (diffNL > diffSL) { left = -0.5 }
+                    
+                }
+                if (diffN == 0) {
+                    
+                    if (diffNL < diffNR) { north = -0.5 }
+                    if (diffNL > diffNR) { north = -0.5 }
+                    
+                }
+            
+                diff = -0.5
+            }
+            // Smooth out height if there is -1 / +1 slope
+            if (( diffL == -1 && diffR == 1) ||
+                ( diffR == -1 && diffL == 1) ||
+                ( diffN == -1 && diffS == 1) ||
+                ( diffS == -1 && diffN == 1) ||
+                ( diffL == -1 && diffR == 1) ||
+                ( diffNL == -1 && diffSR == 1) ||
+                ( diffSR == -1 && diffNL == 1) ||
+                ( diffNR == -1 && diffSL == 1) ||
+                ( diffSL == -1 && diffNR == 1)) {
+                //diff = -0.5
+            }
+            */
+            
+            /*
+                gameRun.smoothSurface[y,x] = 1
+            } else {
+                gameRun.smoothSurface[y,x] = 0
+            }
+            */
+            //
+            
+            
         }
         
-        // Center point
-        
-        let diffMax: Float = [diffN, diffS, diffR, diffL, diffNL, diffSL, diffSR, diffNR].max()!
-        var diff: Float = 0.0
-        
-        if(diffMax != 0) { diff = diffMax / 2 }
-        if(diffMax < 0) { diff = -diffMax / 2 }
-        
-        let northR = [diffN, diffR, diffNR, 0].max()!
-        let northL = [diffN, diffL, diffNL, 0].max()!
-        let southL = [diffS, diffL, diffSL, 0].max()!
-        let southR = [diffS, diffR, diffSR, 0].max()!
-        
-        // diff = (north + northL + left + southL + south + southR + right + northR) / 8
-        
-        vertices.append(SCNVector3(1, _h + diff, 1)) // Mid point
-        vertices.append(SCNVector3(2, _h + northR, 0)) // Top right
-        vertices.append(SCNVector3(1, _h + north, 0)) // Top
-        vertices.append(SCNVector3(0, _h + northL, 0)) // Top left
-        vertices.append(SCNVector3(0, _h + left, 1)) // Left
-        vertices.append(SCNVector3(0, _h + southL, 2)) // Bottom left
-        vertices.append(SCNVector3(1, _h + south, 2)) // Bottom
-        vertices.append(SCNVector3(2, _h + southR, 2)) // Bottom right
-        vertices.append(SCNVector3(2, _h + right, 1)) // Right
+        vertices.append(SCNVector3(1, (_h + diff) * mul, 1)) // Mid point
+        vertices.append(SCNVector3(2, (_h + northR) * mul, 0)) // Top right
+        vertices.append(SCNVector3(1, (_h + north) * mul, 0)) // Top
+        vertices.append(SCNVector3(0, (_h + northL) * mul, 0)) // Top left
+        vertices.append(SCNVector3(0, (_h + left) * mul, 1)) // Left
+        vertices.append(SCNVector3(0, (_h + southL) * mul, 2)) // Bottom left
+        vertices.append(SCNVector3(1, (_h + south) * mul, 2)) // Bottom
+        vertices.append(SCNVector3(2, (_h + southR) * mul, 2)) // Bottom right
+        vertices.append(SCNVector3(2, (_h + right) * mul, 1)) // Right
         
         let source = SCNGeometrySource(vertices: vertices)
         let element = SCNGeometryElement(indices: indices, primitiveType: .triangles)

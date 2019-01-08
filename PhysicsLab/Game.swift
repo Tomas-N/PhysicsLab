@@ -21,6 +21,7 @@ class Game {
     
     var gameWorld: CharacterMatrix!
     var gameSurface: IntMatrix!
+    var smoothSurface: IntMatrix!
     
     var playerSpawnPosition: PlayerPosition
     
