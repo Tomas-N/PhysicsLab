@@ -347,6 +347,8 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
             // TODO
             
         }
+        
+        playerNode.physicsBody?.clearAllForces()
     }
     
     override var shouldAutorotate: Bool {
@@ -535,7 +537,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
                 
                 gameBoard.addChildNode(gameBoardBoxes)
                 
-                gameRun.gameWorld = CharacterMatrix(rows: 1000, columns: 1000)
+                gameRun.gameWorld = CharacterMatrix(rows: 100, columns: 100)
                 
                 // Store the world in the gameWorld matrix
                 var xG: Int = 0
@@ -549,7 +551,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
                     yG += 1
                 }
                 
-                // Create the word by cycling through each character
+                // Populate the word by cycling through each character
                 var x: Int = 0
                 var y: Int = 0
                 for row in world {
@@ -596,30 +598,61 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
                 
                 // Add the nodes for the gameboard)
                 
-                gameRun.gameSurface = IntMatrix(rows: 1000, columns: 1000)
-                gameRun.smoothSurface = IntMatrix(rows: 1000, columns: 1000)
+                gameRun.gameSurface = IntMatrix(rows: 100, columns: 100)
+                gameRun.surfaceMatrix = SurfaceMatrix(rows: 100, columns: 100)
+                
                 
                 // Store the world in the gameWorld matrix
-                var xG: Int = 0
-                var yG: Int = 0
-                for row in surface {
-                    for col in row {
-                        if (col != Character(" ")) {
-                            gameRun.gameSurface![yG,xG] = Int(String(col))!
-                        }
-                        xG += 1
-                    }
-                    xG = 0
-                    yG += 1
-                }
-                
-                // Create the word by cycling through each character
                 var x: Int = 0
                 var y: Int = 0
                 for row in surface {
+                    for col in row {
+                        if (col != Character(" ")) {
+                            gameRun.gameSurface![y,x] = Int(String(col))!
+                        }
+                        x += 1
+                    }
+                    x = 0
+                    y += 1
+                }
+                
+                // Create the surface matrix by cycling through each surface point
+                x = 0
+                y = 0
+                for row in surface {
                     for _ in row {
                         if(gameRun.gameSurface![y,x] > -1) {
-                            createSurface(x: x, y: y, mode: 2, mul: 1.0)
+                            createSurfaceMatrix(x: x, y: y, mode: 2)
+                        }
+                        x += 1 // Move one to the right
+                    }
+                    y += 1 // Move one down
+                    x = 0 // And to the start of the line
+                }
+                
+                // Create the surface matrix by cycling through each surface point
+                x = 0
+                y = 0
+                for row in surface {
+                    for _ in row {
+                        if(gameRun.gameSurface![y,x] > -1) {
+                            smoothSurfaceMatrix(x: x, y: y)
+                        }
+                        x += 1 // Move one to the right
+                    }
+                    y += 1 // Move one down
+                    x = 0 // And to the start of the line
+                }
+                
+                
+                
+                // Create the word by cycling through each surface point
+                x = 0
+                y = 0
+                for row in surface {
+                    for _ in row {
+                        if(gameRun.gameSurface![y,x] > -1) {
+                            createSurface(x: x, y: y, mul: 1.0)
                         }
                         x += 1 // Move one to the right
                     }
@@ -697,29 +730,138 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         gameBoardFloor.addChildNode(geometryNode)
     }
     
+    
+    func smoothSurfaceMatrix(x: Int, y: Int) {
+        
+        // look for three in a row in x-direction
+        if(gameRun.surfaceMatrix.rows > x + 2) {
+            
+            // Look for a width of 2 at min
+            if(gameRun.surfaceMatrix.columns > y + 2) {
+                
+                // Is there a parallel one row down at the same level?
+                if (gameRun.surfaceMatrix[y,x].center == gameRun.surfaceMatrix[y+1,x].center){
+                    
+                    // Left to Right
+                    if (gameRun.surfaceMatrix[y,x].center == gameRun.surfaceMatrix[y,x+1].center - 1) {
+                        
+                        // One higher
+                        if (gameRun.surfaceMatrix[y,x+1].center == gameRun.surfaceMatrix[y,x+2].center - 1) {
+                            
+                            // Second row
+                            if (gameRun.surfaceMatrix[y+1,x].center == gameRun.surfaceMatrix[y+1,x+1].center - 1) {
+                                
+                                // One higher
+                                if (gameRun.surfaceMatrix[y+1,x+1].center == gameRun.surfaceMatrix[y+1,x+2].center - 1) {
+                                    
+                                    // 3x * 2y slope found
+                                    
+                                    // Smooth second set of mid points
+                                    gameRun.surfaceMatrix[y,x+1].smooth = true
+                                    gameRun.surfaceMatrix[y,x+2].smooth = true
+                                    gameRun.surfaceMatrix[y+1,x+1].smooth = true
+                                    gameRun.surfaceMatrix[y+1,x+2].smooth = true
+                                
+                                    
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Right to left
+                    if (gameRun.surfaceMatrix[y,x].center == gameRun.surfaceMatrix[y,x+1].center + 1) {
+                        
+                        // One more
+                        if (gameRun.surfaceMatrix[y,x+1].center == gameRun.surfaceMatrix[y,x+2].center + 1) {
+                            
+                            // And second row
+                            if (gameRun.surfaceMatrix[y+1,x].center == gameRun.surfaceMatrix[y+1,x+1].center + 1) {
+                                
+                                // And last one
+                                if (gameRun.surfaceMatrix[y+1,x+1].center == gameRun.surfaceMatrix[y+1,x+2].center + 1) {
+                                    
+                                    // 3x * 2y slope found
+                                    // Smooth first set of mid points
+                                    gameRun.surfaceMatrix[y,x].smooth = true
+                                    gameRun.surfaceMatrix[y,x+1].smooth = true
+                                    gameRun.surfaceMatrix[y+1,x].smooth = true
+                                    gameRun.surfaceMatrix[y+1,x+1].smooth = true
+
+                                }
+                            }
+                        }
+                    }
+ 
+                }
+                
+                // Is there a parallel one column down?
+                if (gameRun.surfaceMatrix[y,x].center == gameRun.surfaceMatrix[y,x+1].center) {
+                    
+                    // North to south
+                    if (gameRun.surfaceMatrix[y,x].center == gameRun.surfaceMatrix[y+1,x].center + 1) {
+                        
+                        // Next one is one down
+                        if (gameRun.surfaceMatrix[y+1,x].center == gameRun.surfaceMatrix[y+2,x].center + 1) {
+                            
+                            // Second column
+                            if (gameRun.surfaceMatrix[y,x+1].center == gameRun.surfaceMatrix[y+1,x+1].center + 1) {
+                                
+                                // And last one
+                                if (gameRun.surfaceMatrix[y+1,x+1].center == gameRun.surfaceMatrix[y+2,x+1].center + 1) {
+                                    
+                                    // 3x * 2y slope found
+                                    // Smooth first set of mid points
+                                    gameRun.surfaceMatrix[y,x].smooth = true
+                                    gameRun.surfaceMatrix[y,x+1].smooth = true
+                                    gameRun.surfaceMatrix[y+1,x].smooth = true
+                                    gameRun.surfaceMatrix[y+1,x+1].smooth = true
+                                    
+                                }
+                            }
+                        }
+                    }
+                    
+                    // South to North
+                    
+                    if (gameRun.surfaceMatrix[y,x].center == gameRun.surfaceMatrix[y+1,x].center - 1) {
+                        
+                        // Next one is one down
+                        if (gameRun.surfaceMatrix[y+1,x].center == gameRun.surfaceMatrix[y+2,x].center - 1) {
+                            
+                            // Second column
+                            if (gameRun.surfaceMatrix[y,x+1].center == gameRun.surfaceMatrix[y+1,x+1].center - 1) {
+                                
+                                // And last one
+                                if (gameRun.surfaceMatrix[y+1,x+1].center == gameRun.surfaceMatrix[y+2,x+1].center - 1) {
+                                    
+                                    // 3x * 2y slope found
+                                    // Smooth first set of mid points
+                                    gameRun.surfaceMatrix[y+1,x].smooth = true
+                                    gameRun.surfaceMatrix[y+1,x+1].smooth = true
+                                    gameRun.surfaceMatrix[y+2,x].smooth = true
+                                    gameRun.surfaceMatrix[y+2,x+1].smooth = true
+                                    
+                                }
+                            }
+                        }
+                    }
+                }
+                
+            }
+        
+        }
+    }
+    
     // mode = 0, raise up surface around
     // mode = 1, raise up only the one brick
     // mode = height multiplier (default 1.0)
     
-    func createSurface(x: Int, y: Int, mode: Int, mul: Float) {
-   
+    func createSurfaceMatrix(x: Int, y: Int, mode: Int) {
+        
         
         let gameSurface: IntMatrix! = gameRun.gameSurface
         
         let _h: Float = Float(gameSurface![y,x])
-        
-        let indices: [UInt16] = [
-            0, 1, 2,
-            2, 3, 0,
-            3, 4, 0,
-            4, 5, 0,
-            5, 6, 0,
-            6, 7, 0,
-            7, 8, 0,
-            8, 1, 0
-        ]
-        
-        var vertices: [SCNVector3] = []
         
         // Check if any surrounding area is one higher
         var diffN: Float = 0.0
@@ -752,18 +894,9 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         
         // South right side
         if(gameSurface.rows > y && x < (gameSurface.columns - 1)) { diffSR = Float(gameSurface[y+1,x+1]) - _h }
-    
+        
         // North right side
         if(y > 0 && x < (gameSurface.columns - 1)) { diffNR = Float(gameSurface[y-1,x+1]) - _h }
-        
-        
-        // Debug entry
-        let color: UIColor = UIColor.blue
-        /*
-        if (_h == 8) {
-            color = UIColor.red
-        }
-        */
         
         var left: Float = 0.0
         var right: Float = 0.0
@@ -821,7 +954,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
                     north = diffN
                 }
             }
-
+            
             if (diffS <= 0) {
                 if ([diffL, diffSL, diffR, diffSR].max()! > 0) {
                     south = ([diffL, diffSL, diffR, diffSR].max()!) / 2
@@ -834,7 +967,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
                 } else {
                     south = diffS
                 }
-            
+                
             }
             
             // Center point
@@ -852,7 +985,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         } else if (mode == 2) {
             
             diff = 0.0
-           
+            
             // Corner needs to be the lowest
             northR = [diffN, diffR, diffNR, 0].min()!
             northL = [diffN, diffL, diffNL, 0].min()!
@@ -866,87 +999,102 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
             if (diffN < 0) {north = diffN}
             if (diffS < 0) {south = diffS}
             
-            // Detect slope
-            /*
-            if ((diffL < 0 && diffR >= 0) ||
-                (diffR < 0 && diffL >= 0) ||
-                (diffN < 0 && diffS >= 0) ||
-                (diffS < 0 && diffN >= 0)) {
-            */
-            /*
-            // Smooth out height if there is 1 / 0 slope
-            if (( diffL == -1 && diffR == 0) ||
-                ( diffR == -1 && diffL == 0) ||
-                ( diffN == -1 && diffS == 0) ||
-                ( diffS == -1 && diffN == 0) ||
-                ( diffL == -1 && diffR == 0) ||
-                ( diffNL == -1 && diffSR == 0) ||
-                ( diffSR == -1 && diffNL == 0) ||
-                ( diffNR == -1 && diffSL == 0) ||
-                ( diffSL == -1 && diffNR == 0)) {
-                
-                //
-                if (diffR == 0) {
-                    if (diffNR < diffSR) { right = -0.5 }
-                    if (diffNR > diffSR) { right = -0.5 }
-                    
-                }
-                if (diffS == 0) {
-                    
-                    if (diffSL < diffSR) { south = -0.5 }
-                    if (diffSL > diffSR) { south = -0.5 }
-                    
-                }
-                
-                
-                if (diffL == 0) {
-                    if (diffNL < diffSL) { left = -0.5 }
-                    if (diffNL > diffSL) { left = -0.5 }
-                    
-                }
-                if (diffN == 0) {
-                    
-                    if (diffNL < diffNR) { north = -0.5 }
-                    if (diffNL > diffNR) { north = -0.5 }
-                    
-                }
-            
-                diff = -0.5
-            }
-            // Smooth out height if there is -1 / +1 slope
-            if (( diffL == -1 && diffR == 1) ||
-                ( diffR == -1 && diffL == 1) ||
-                ( diffN == -1 && diffS == 1) ||
-                ( diffS == -1 && diffN == 1) ||
-                ( diffL == -1 && diffR == 1) ||
-                ( diffNL == -1 && diffSR == 1) ||
-                ( diffSR == -1 && diffNL == 1) ||
-                ( diffNR == -1 && diffSL == 1) ||
-                ( diffSL == -1 && diffNR == 1)) {
-                //diff = -0.5
-            }
-            */
-            
-            /*
-                gameRun.smoothSurface[y,x] = 1
-            } else {
-                gameRun.smoothSurface[y,x] = 0
-            }
-            */
-            //
-            
-            
         }
         
-        vertices.append(SCNVector3(1, (_h + diff) * mul, 1)) // Mid point
-        vertices.append(SCNVector3(2, (_h + northR) * mul, 0)) // Top right
-        vertices.append(SCNVector3(1, (_h + north) * mul, 0)) // Top
-        vertices.append(SCNVector3(0, (_h + northL) * mul, 0)) // Top left
-        vertices.append(SCNVector3(0, (_h + left) * mul, 1)) // Left
-        vertices.append(SCNVector3(0, (_h + southL) * mul, 2)) // Bottom left
-        vertices.append(SCNVector3(1, (_h + south) * mul, 2)) // Bottom
-        vertices.append(SCNVector3(2, (_h + southR) * mul, 2)) // Bottom right
-        vertices.append(SCNVector3(2, (_h + right) * mul, 1)) // Right
+        gameRun.surfaceMatrix[y,x].center = (_h + diff)
+        gameRun.surfaceMatrix[y,x].northR = (_h + northR)
+        gameRun.surfaceMatrix[y,x].north = (_h + north)
+        gameRun.surfaceMatrix[y,x].northL = (_h + northL)
+        gameRun.surfaceMatrix[y,x].left = (_h + left)
+        gameRun.surfaceMatrix[y,x].southL = (_h + southL)
+        gameRun.surfaceMatrix[y,x].south = (_h + south)
+        gameRun.surfaceMatrix[y,x].southR = (_h + southR)
+        gameRun.surfaceMatrix[y,x].right = (_h + right)
+        
+    }
+    
+    
+    // mode = 0, raise up surface around
+    // mode = 1, raise up only the one brick
+    // mode = height multiplier (default 1.0)
+    
+    func createSurface(x: Int, y: Int, mul: Float) {
+   
+        let indices: [UInt16] = [
+            0, 1, 2,
+            2, 3, 0,
+            3, 4, 0,
+            4, 5, 0,
+            5, 6, 0,
+            6, 7, 0,
+            7, 8, 0,
+            8, 1, 0
+        ]
+        
+        var vertices: [SCNVector3] = []
+        
+        
+        // Debug entry
+        let color: UIColor = UIColor.blue
+        /*
+         if (_h == 8) {
+         color = UIColor.red
+         }
+         */
+        
+        var northS: Float = 0.0
+        var southS: Float = 0.0
+        var leftS: Float = 0.0
+        var rightS: Float = 0.0
+        
+        // Apply smoothing to verices
+        if (gameRun.surfaceMatrix[y,x].smooth ==  true) {
+            
+            if (y > 0) {
+                if (gameRun.surfaceMatrix[y - 1,x].smooth ==  true &&
+                    gameRun.surfaceMatrix[y - 1,x].center == gameRun.surfaceMatrix[y,x].center) {
+                    northS = -0.5
+                }
+            }
+           
+            if (y < gameRun.gameSurface.rows - 1) {
+                if (gameRun.surfaceMatrix[y + 1,x].smooth ==  true &&
+                    gameRun.surfaceMatrix[y + 1,x].center == gameRun.surfaceMatrix[y,x].center) {
+                    southS = -0.5
+                }
+                
+            }
+            
+            if (x > 0) {
+                if (gameRun.surfaceMatrix[y,x - 1].smooth ==  true &&
+                    gameRun.surfaceMatrix[y, x - 1].center == gameRun.surfaceMatrix[y,x].center) {
+                    leftS = -0.5
+                }
+            }
+            
+            if (x < gameRun.gameSurface.columns - 1) {
+                
+                if (gameRun.surfaceMatrix[y,x + 1].smooth ==  true &&
+                    gameRun.surfaceMatrix[y,x + 1].center == gameRun.surfaceMatrix[y,x].center) {
+                    rightS = -0.5
+                }
+            }
+ 
+            vertices.append(SCNVector3(1, (gameRun.surfaceMatrix[y,x].center - 0.5) * mul, 1))
+            
+        } else {
+            vertices.append(SCNVector3(1, gameRun.surfaceMatrix[y,x].center * mul, 1))
+        }
+        
+        vertices.append(SCNVector3(2, gameRun.surfaceMatrix[y,x].northR * mul, 0))
+        vertices.append(SCNVector3(1, (gameRun.surfaceMatrix[y,x].north + northS) * mul, 0))
+        vertices.append(SCNVector3(0, gameRun.surfaceMatrix[y,x].northL * mul, 0))
+        vertices.append(SCNVector3(0, (gameRun.surfaceMatrix[y,x].left + leftS) * mul, 1))
+        vertices.append(SCNVector3(0, gameRun.surfaceMatrix[y,x].southL * mul, 2))
+        vertices.append(SCNVector3(1, (gameRun.surfaceMatrix[y,x].south + southS) * mul, 2))
+        vertices.append(SCNVector3(2, gameRun.surfaceMatrix[y,x].southR * mul, 2))
+        vertices.append(SCNVector3(2, (gameRun.surfaceMatrix[y,x].right + rightS) * mul, 1))
+        
         
         let source = SCNGeometrySource(vertices: vertices)
         let element = SCNGeometryElement(indices: indices, primitiveType: .triangles)
