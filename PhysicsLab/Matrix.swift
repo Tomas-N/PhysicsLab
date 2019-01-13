@@ -35,6 +35,33 @@ struct CharacterMatrix {
 }
 
 
+struct IntMatrix3 {
+    let rows: Int, columns: Int, height: Int
+    var grid: [Int]
+    
+    init(rows: Int, columns: Int, height: Int) {
+        self.rows = rows
+        self.columns = columns
+        self.height = height
+        grid = Array(repeating: 0, count: rows * columns * height)
+    }
+    
+    func indexIsValid(row: Int, column: Int, height: Int) -> Bool {
+        return row >= 0 && row < rows && column >= 0 && column < columns && height >= 0 && height < self.height
+    }
+    
+    subscript(row: Int, column: Int, height: Int) -> Int {
+        get {
+            assert(indexIsValid(row: row, column: column, height: height), "Index out of range")
+            return grid[(row * columns) + column + (self.columns * self.rows * height)]
+        }
+        set {
+            assert(indexIsValid(row: row, column: column, height: height), "Index out of range")
+            grid[(row * columns) + column + (self.columns * self.rows * height)] = newValue
+        }
+    }
+}
+
 struct IntMatrix {
     let rows: Int, columns: Int
     var grid: [Int]

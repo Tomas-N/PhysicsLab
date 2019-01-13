@@ -15,12 +15,20 @@ struct PlayerPosition {
 
 class Game {
  
+    enum Bridge: Int {
+        case east = 2
+        case north = 3
+        case west = 4
+        case south = 5
+    }
+    
     private var gameWhiteCount: Int = 0
     private var gameRedCount: Int = 0
     private var gameMoves: Int = 0
     
     var gameWorld: CharacterMatrix!
     var gameSurface: IntMatrix!
+    var gameSurface3D: IntMatrix3!
     var smoothSurface: IntMatrix!
     var surfaceMatrix: SurfaceMatrix!
     

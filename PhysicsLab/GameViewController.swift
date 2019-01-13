@@ -30,6 +30,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
     var lightNode: SCNNode!
     
     var gameBoard = SCNNode()
+    var gameBoardLayer: [GameBoardLayer] = []
     var gameBoardWalls = SCNNode()
     var gameBoardFloor = SCNNode()
     var gameBoardBoxes = SCNNode()
@@ -43,6 +44,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
     
     var touchMarkerNode: SCNNode!
     var playerNode: SCNNode!
+    var playerHolderNode = SCNNode()
     var touchDirectionNode: SCNNode!
     var touchD1: SCNNode!
     var touchD2: SCNNode!
@@ -50,10 +52,17 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
     
     var gameRun = Game()
     
-    var cameraConstraint: SCNTransformConstraint! // Exactly on top, changing Y
-    var cameraOutOfBounds: Bool = false
     
-    var lightConstraint: SCNTransformConstraint! // A bit on the side of the player
+    var playerVelocity: SCNVector3 = SCNVector3(0.0, 0.0, 0.0)
+    
+    
+    var cameraConstraint: SCNTransformConstraint! // Exactly on top, changing Y
+    var cameraZoomConstraint: SCNTransformConstraint! // Return camer to range
+    var cameraOutOfBounds: Bool = false
+    var moveBackToNormalCamera: Bool = false
+    var cameraYDiff: Float = 20.0
+    
+    var lightConstraint: SCNTransformConstraint! //
     var playerXYZConstraint: SCNTransformConstraint! // Exactly on top of player, constant Y
     
     var hitBoxes: [SCNNode] = [] // The nodes hit during the physics simulation
@@ -67,8 +76,8 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         setupScene()
         setupConstraints()
         setupHUD(height: scnView.bounds.height, width: scnView.bounds.width)
-        setupSurface(surfaceN: "4")
-        setupWorldElements(worldN: "4")
+        setupSurface(surfaceN: "5")
+        setupWorldElements(worldN: "5")
         setupToucMarker()
         setupLight()
         particleSystem = SCNParticleSystem(named: "Hit1", inDirectory: nil)
@@ -131,23 +140,9 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         
         // Boom effect
         hitBox.addParticleSystem(self.particleSystem)
-        
-        /*
-        // Reduce size
-        boxNode.scale = SCNVector3(boxNode.scale.x * 0.5, boxNode.scale.y * 0.5, boxNode.scale.y * 0.5)
-        if(boxNode.scale.x <= 0.25) {
-            boxNode.removeFromParentNode()
-            return
-        }
-    
-        // Split into two
-        let newNode: SCNNode = boxNode.clone()
-        newNode.position = boxNode.presentation.position
-        newNode.physicsBody = boxNode.physicsBody?.copy() as? SCNPhysicsBody
-        scnScene.rootNode.addChildNode(newNode)
- */
     }
     
+    var playerAtRest: Bool = false
     var startPosition = CGPoint()
     var result = SCNHitTestResult()
     var movePlayer = false
@@ -265,6 +260,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
                     playerNode.physicsBody?.applyForce(forceVector, at: position, asImpulse: true)
 
                     gameRun.addMove()
+                    playerAtRest = false
                     gameHUDInvalid = true
                 }
             } else if (panGameBoard) {
@@ -307,13 +303,13 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
             }
         } else {
             // Return the camera constraint
-            cameraNode.constraints = [cameraConstraint]
+            cameraNode.constraints = [cameraZoomConstraint]
         }
     }
     
     @objc
     func handleTap(_ gestureRecognize: UIGestureRecognizer) {
-        
+        /*
         // check what nodes are tapped
         let p = gestureRecognize.location(in: scnView)
 
@@ -347,8 +343,22 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
             // TODO
             
         }
+ */
+        var force: SCNVector3!
         
+        // A gentle force if we are moving fast
+        if (playerVelocity.x > 2 || playerVelocity.x < -2 || playerVelocity.z > 2 || playerVelocity.z < -2) {
+            force = SCNVector3(0,5,0)
+        
+        // More force if we move slowly
+        } else {
+            force = SCNVector3(0,20,0)
+        }
+        let position = SCNVector3(0, 0, 0)
+    
         playerNode.physicsBody?.clearAllForces()
+        playerNode.physicsBody?.applyForce(force, at: position, asImpulse: true)
+            
     }
     
     override var shouldAutorotate: Bool {
@@ -394,12 +404,11 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         lightNode.light!.shadowMode = SCNShadowMode.modulated
         lightNode.light!.shadowSampleCount = 2
         //lightNode.light!.shadowMapSize = CGSize(width: 128, height: 128)
-        lightNode.position = SCNVector3(x: playerNode.presentation.position.x, y: 20, z: playerNode.presentation.position.z)
-        lightNode.eulerAngles = SCNVector3(-Float.pi/2, 0.0, 0.0)
         
+        //lightNode.position = SCNVector3(x: playerNode.presentation.position.x, y: 20, z: playerNode.presentation.position.z)
+        lightNode.eulerAngles = SCNVector3(-Float.pi/2, 0.0, 0.0)
         lightNode.constraints = [lightConstraint]
         scnScene.rootNode.addChildNode(lightNode)
-
     }
 
     func setupHUD(height: CGFloat, width: CGFloat) {
@@ -448,80 +457,6 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         
     }
     
-    /*
-    func setupWorld() {
-        
-        var world: [String]!
-        
-        gameHUDInvalid = true
-        
-        if let filepath = Bundle.main.path(forResource: "3", ofType: "world") {
-            do {
-                let contents = try String(contentsOfFile: filepath)
-                debugPrint(contents)
-                world = contents.components(separatedBy: "\n")
-                debugPrint(world.count)
-                
-                gameBoard.addChildNode(gameBoardBoxes)
-                
-                gameWorld = CharacterMatrix(rows: world.count, columns: (world.max()?.count)!)
-                
-                // Store the world in the gameWorld matrix
-                var xG: Int = 0
-                var yG: Int = 0
-                for row in world {
-                    for col in row {
-                        gameWorld![yG,xG] = col
-                        xG += 1
-                    }
-                    xG = 0
-                    yG += 1
-                }
-                
-                debugPrint(gameWorld)
-                
-                // Create the word by cycling through each character
-                var x: Int = 0
-                var y: Int = 0
-                for row in world {
-                    for col in row {
-                        switch col {
-                        case "0":
-                            createWall(x: x, y: y)
-                        case "1":
-                            createFloor(x: x, y: y)
-                        case "2":
-                            createRaisedFloor(x: x, y: y)
-                        case "X":
-                            createFloor(x: x, y: y)
-                            spawnPlayer(x: x, y: y)
-                        case "A":
-                            createFloor(x: x, y: y)
-                            spawnBoxA(x: x, y: y)
-                            gameWhiteCount += 1
-                        case "B":
-                            createWall(x: x, y: y)
-                            spawnBoxA(x: x, y: y)
-                            gameWhiteCount += 1
-                        default:
-                            debugPrint("Nothing to add... \(x) \(y)")
-                        }
-                        x += 1 // Move one to the right
-                    }
-                    y += 1 // Move one down
-                    x = 0 // And to the start of the line
-                }
-                
-            } catch {
-                // contents could not be loaded
-            }
-        } else {
-            // example.txt not found!
-        }
-        
-    }
-    */
-    
     func setupWorldElements(worldN: String) {
         
         var world: [String]!
@@ -560,7 +495,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
                          case "X":
                             spawnPlayer(x: x, y: y)
                         case "A":
-                            spawnBoxA(x: x, y: y)
+                        //    spawnBoxA(x: x, y: y)
                             gameRun.addBox()
                         default:
                             debugPrint("Nothing to add... \(x) \(y)")
@@ -580,446 +515,143 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         
     }
     
-    
+  
     func setupSurface(surfaceN: String) {
-        
-        var surface: [String]!
         
         // Add the nodes for the gameboard
         scnScene.rootNode.addChildNode(gameBoard)
-        gameBoard.addChildNode(gameBoardFloor)
+        // gameBoard.addChildNode(gameBoardFloor)
+        
+        // Inititiate layers
+        while gameBoardLayer.count < 10 {
+            let layer = GameBoardLayer()
+            gameBoardLayer.append(layer)
+            gameBoard.addChildNode(layer)
+        }
         
         if let filepath = Bundle.main.path(forResource: surfaceN, ofType: "surface") {
             do {
                 let contents = try String(contentsOfFile: filepath)
                 debugPrint(contents)
-                surface = contents.components(separatedBy: "\n")
-                debugPrint(surface.count)
+                let rows: [String] = contents.components(separatedBy: "\n")
+                debugPrint(rows.count)
                 
-                // Add the nodes for the gameboard)
-                
-                gameRun.gameSurface = IntMatrix(rows: 100, columns: 100)
-                gameRun.surfaceMatrix = SurfaceMatrix(rows: 100, columns: 100)
+                gameRun.gameSurface3D = IntMatrix3(rows: 100, columns: 100, height: 10)
+                //gameRun.surfaceMatrix = SurfaceMatrix(rows: 100, columns: 100)
                 
                 
                 // Store the world in the gameWorld matrix
                 var x: Int = 0
                 var y: Int = 0
-                for row in surface {
-                    for col in row {
-                        if (col != Character(" ")) {
-                            gameRun.gameSurface![y,x] = Int(String(col))!
+                var z: Int = 0
+                
+                for row in rows {
+                    let rowItems: [String] = row.components(separatedBy: ",")
+                    for col in rowItems {
+                        for block in col {
+                            if (block == "A") {
+                                spawnBoxA(x: x, y: y, z: z)
+                                gameRun.addBox()
+                            } else if (block != Character(" ")) {
+                                gameRun.gameSurface3D![y,x,z] = Int(String(block))!
+                            }
+                            z += 1
                         }
+                        z = 0
                         x += 1
                     }
                     x = 0
                     y += 1
                 }
                 
-                // Create the surface matrix by cycling through each surface point
-                x = 0
-                y = 0
-                for row in surface {
-                    for _ in row {
-                        if(gameRun.gameSurface![y,x] > -1) {
-                            createSurfaceMatrix(x: x, y: y, mode: 2)
+                // Loop through each node
+                z = 0
+                var empty: Int = 0
+                while z < gameRun.gameSurface3D.height {
+                    y = 0
+                    while y < gameRun.gameSurface3D.rows {
+                        x = 0
+                        while x < gameRun.gameSurface3D.columns {
+                            switch gameRun.gameSurface3D[y,x,z] {
+                            case 1:
+                                create3DSurfacePoint(y: y, x: x, z: z)
+                            case 2:
+                                create3DBridgePoint(y: y, x: x, z: z, direction: Game.Bridge.east)
+                            default:
+                                empty += 1
+                            }
+                            
+                            x += 1
                         }
-                        x += 1 // Move one to the right
+                        y += 1
                     }
-                    y += 1 // Move one down
-                    x = 0 // And to the start of the line
+                    z += 1
                 }
                 
-                // Create the surface matrix by cycling through each surface point
-                x = 0
-                y = 0
-                for row in surface {
-                    for _ in row {
-                        if(gameRun.gameSurface![y,x] > -1) {
-                            smoothSurfaceMatrix(x: x, y: y)
-                        }
-                        x += 1 // Move one to the right
-                    }
-                    y += 1 // Move one down
-                    x = 0 // And to the start of the line
-                }
-                
-                
-                
-                // Create the word by cycling through each surface point
-                x = 0
-                y = 0
-                for row in surface {
-                    for _ in row {
-                        if(gameRun.gameSurface![y,x] > -1) {
-                            createSurface(x: x, y: y, mul: 1.0)
-                        }
-                        x += 1 // Move one to the right
-                    }
-                    y += 1 // Move one down
-                    x = 0 // And to the start of the line
-                }
                 
             } catch {
                 // contents could not be loaded
             }
         } else {
-            // example.txt not found!
+            // File not found
         }
         
     }
     
-    func createWall(x: Int, y: Int) {
-        
-        let gameWorld: CharacterMatrix! = gameRun.gameWorld
-        
-        // top
-        var geometryNode = createPlane(x: x, y: y, xOff: 0.0, yOff: 2.0, zOff: 0.0, angles: SCNVector3(-Float.pi/2,0,0), color: UIColor.darkGray)
-        geometryNode.name = "Wall"
-        gameBoardFloor.addChildNode(geometryNode)
-        
-        // South side
-        // Does the camworld continue?
-        if(gameWorld.rows > y) {
-            // It is not a wall
-            if(gameWorld![y+1,x] != "0") {
-                geometryNode = createPlane(x: x, y: y, xOff:0.0, yOff: 1.0, zOff: 1.0, angles: SCNVector3(0,0,0), color: UIColor.darkGray)
-                geometryNode.name = "Wall"
-                gameBoardFloor.addChildNode(geometryNode)
-            }
-        }
-        
-        // North side
-        // Does the camworld continue?
-        if(y > 1) {
-            // It is not a wall
-            if(gameWorld![y-1,x] != "0") {
-                geometryNode = createPlane(x: x, y: y, xOff:0.0, yOff: 1.0, zOff: -1.0, angles: SCNVector3(0,Float.pi,0), color: UIColor.darkGray)
-                geometryNode.name = "Wall"
-                gameBoardFloor.addChildNode(geometryNode)
-            }
-        }
-        
-        // Left side
-        // Does the camworld continue?
-        if(x > 0) {
-            // It is not a wall
-            if(gameWorld![y,x-1] != "0") {
-                geometryNode = createPlane(x: x, y: y, xOff:-1.0, yOff: 1.0, zOff: 0.0, angles: SCNVector3(0,-Float.pi/2,0), color: UIColor.darkGray)
-                geometryNode.name = "Wall"
-                gameBoardFloor.addChildNode(geometryNode)
-            }
-        }
     
-        // Right side
-        // Does the camworld continue?
-        if(x < (gameWorld.columns - 1)) {
-            // It is not a wall
-            if(gameWorld![y,x+1] != "0") {
-                geometryNode = createPlane(x: x, y: y, xOff:1.0, yOff: 1.0, zOff: 0.0, angles: SCNVector3(0,Float.pi/2,0), color: UIColor.darkGray)
-                geometryNode.name = "Wall"
-                gameBoardFloor.addChildNode(geometryNode)
-            }
-        }
+    func create3DBridgePoint(y: Int, x: Int, z: Int, direction: Game.Bridge) {
         
-    }
-    
-    func createFloor(x: Int, y: Int) {
-        let geometryNode = createPlane(x: x, y: y, xOff: 0.0, yOff: 0.0, zOff: 0.0, angles: SCNVector3(-Float.pi/2,0,0), color: UIColor.blue)
-        geometryNode.name = "Floor"
-        gameBoardFloor.addChildNode(geometryNode)
-    }
-    
-    
-    func smoothSurfaceMatrix(x: Int, y: Int) {
-        
-        // look for three in a row in x-direction
-        if(gameRun.surfaceMatrix.rows > x + 2) {
-            
-            // Look for a width of 2 at min
-            if(gameRun.surfaceMatrix.columns > y + 2) {
-                
-                // Is there a parallel one row down at the same level?
-                if (gameRun.surfaceMatrix[y,x].center == gameRun.surfaceMatrix[y+1,x].center){
-                    
-                    // Left to Right
-                    if (gameRun.surfaceMatrix[y,x].center == gameRun.surfaceMatrix[y,x+1].center - 1) {
-                        
-                        // One higher
-                        if (gameRun.surfaceMatrix[y,x+1].center == gameRun.surfaceMatrix[y,x+2].center - 1) {
-                            
-                            // Second row
-                            if (gameRun.surfaceMatrix[y+1,x].center == gameRun.surfaceMatrix[y+1,x+1].center - 1) {
-                                
-                                // One higher
-                                if (gameRun.surfaceMatrix[y+1,x+1].center == gameRun.surfaceMatrix[y+1,x+2].center - 1) {
-                                    
-                                    // 3x * 2y slope found
-                                    
-                                    // Smooth second set of mid points
-                                    gameRun.surfaceMatrix[y,x+1].smooth = true
-                                    gameRun.surfaceMatrix[y,x+2].smooth = true
-                                    gameRun.surfaceMatrix[y+1,x+1].smooth = true
-                                    gameRun.surfaceMatrix[y+1,x+2].smooth = true
-                                
-                                    
-                                }
-                            }
-                        }
-                    }
-                    
-                    // Right to left
-                    if (gameRun.surfaceMatrix[y,x].center == gameRun.surfaceMatrix[y,x+1].center + 1) {
-                        
-                        // One more
-                        if (gameRun.surfaceMatrix[y,x+1].center == gameRun.surfaceMatrix[y,x+2].center + 1) {
-                            
-                            // And second row
-                            if (gameRun.surfaceMatrix[y+1,x].center == gameRun.surfaceMatrix[y+1,x+1].center + 1) {
-                                
-                                // And last one
-                                if (gameRun.surfaceMatrix[y+1,x+1].center == gameRun.surfaceMatrix[y+1,x+2].center + 1) {
-                                    
-                                    // 3x * 2y slope found
-                                    // Smooth first set of mid points
-                                    gameRun.surfaceMatrix[y,x].smooth = true
-                                    gameRun.surfaceMatrix[y,x+1].smooth = true
-                                    gameRun.surfaceMatrix[y+1,x].smooth = true
-                                    gameRun.surfaceMatrix[y+1,x+1].smooth = true
-
-                                }
-                            }
-                        }
-                    }
- 
-                }
-                
-                // Is there a parallel one column down?
-                if (gameRun.surfaceMatrix[y,x].center == gameRun.surfaceMatrix[y,x+1].center) {
-                    
-                    // North to south
-                    if (gameRun.surfaceMatrix[y,x].center == gameRun.surfaceMatrix[y+1,x].center + 1) {
-                        
-                        // Next one is one down
-                        if (gameRun.surfaceMatrix[y+1,x].center == gameRun.surfaceMatrix[y+2,x].center + 1) {
-                            
-                            // Second column
-                            if (gameRun.surfaceMatrix[y,x+1].center == gameRun.surfaceMatrix[y+1,x+1].center + 1) {
-                                
-                                // And last one
-                                if (gameRun.surfaceMatrix[y+1,x+1].center == gameRun.surfaceMatrix[y+2,x+1].center + 1) {
-                                    
-                                    // 3x * 2y slope found
-                                    // Smooth first set of mid points
-                                    gameRun.surfaceMatrix[y,x].smooth = true
-                                    gameRun.surfaceMatrix[y,x+1].smooth = true
-                                    gameRun.surfaceMatrix[y+1,x].smooth = true
-                                    gameRun.surfaceMatrix[y+1,x+1].smooth = true
-                                    
-                                }
-                            }
-                        }
-                    }
-                    
-                    // South to North
-                    
-                    if (gameRun.surfaceMatrix[y,x].center == gameRun.surfaceMatrix[y+1,x].center - 1) {
-                        
-                        // Next one is one down
-                        if (gameRun.surfaceMatrix[y+1,x].center == gameRun.surfaceMatrix[y+2,x].center - 1) {
-                            
-                            // Second column
-                            if (gameRun.surfaceMatrix[y,x+1].center == gameRun.surfaceMatrix[y+1,x+1].center - 1) {
-                                
-                                // And last one
-                                if (gameRun.surfaceMatrix[y+1,x+1].center == gameRun.surfaceMatrix[y+2,x+1].center - 1) {
-                                    
-                                    // 3x * 2y slope found
-                                    // Smooth first set of mid points
-                                    gameRun.surfaceMatrix[y+1,x].smooth = true
-                                    gameRun.surfaceMatrix[y+1,x+1].smooth = true
-                                    gameRun.surfaceMatrix[y+2,x].smooth = true
-                                    gameRun.surfaceMatrix[y+2,x+1].smooth = true
-                                    
-                                }
-                            }
-                        }
-                    }
-                }
-                
-            }
-        
-        }
-    }
-    
-    // mode = 0, raise up surface around
-    // mode = 1, raise up only the one brick
-    // mode = height multiplier (default 1.0)
-    
-    func createSurfaceMatrix(x: Int, y: Int, mode: Int) {
-        
-        
-        let gameSurface: IntMatrix! = gameRun.gameSurface
-        
-        let _h: Float = Float(gameSurface![y,x])
-        
-        // Check if any surrounding area is one higher
         var diffN: Float = 0.0
         var diffS: Float = 0.0
-        var diffL: Float = 0.0
-        var diffR: Float = 0.0
+        var diffE: Float = 0.0
+        var diffW: Float = 0.0
+        var diffNW: Float = 0.0
+        var diffSW: Float = 0.0
+        var diffSE: Float = 0.0
+        var diffNE: Float = 0.0
+        var diffC: Float = 0.0
         
-        var diffNL: Float = 0.0
-        var diffSL: Float = 0.0
-        var diffSR: Float = 0.0
-        var diffNR: Float = 0.0
+        if (direction == Game.Bridge.east) {
         
-        // North side
-        if(y > 0) { diffN = Float(gameSurface[y-1,x]) - _h }
-        
-        // Left side
-        if(x > 0) { diffL = Float(gameSurface [y,x-1]) - _h }
-        
-        // South side
-        if(gameSurface.rows > y) { diffS = Float(gameSurface[y+1,x]) - _h}
-        
-        // Right side
-        if(x < (gameSurface.columns - 1)) { diffR = Float(gameSurface[y,x+1]) - _h }
-        
-        // North left side
-        if(y > 0 && x > 0) { diffNL = Float(gameSurface[y-1,x-1]) - _h }
-        
-        // South left side
-        if(gameSurface.rows > y && x > 0) { diffSL = Float(gameSurface[y+1,x-1]) - _h }
-        
-        // South right side
-        if(gameSurface.rows > y && x < (gameSurface.columns - 1)) { diffSR = Float(gameSurface[y+1,x+1]) - _h }
-        
-        // North right side
-        if(y > 0 && x < (gameSurface.columns - 1)) { diffNR = Float(gameSurface[y-1,x+1]) - _h }
-        
-        var left: Float = 0.0
-        var right: Float = 0.0
-        var north: Float = 0.0
-        var south: Float = 0.0
-        
-        var northR: Float = 0.0
-        var northL: Float = 0.0
-        var southL: Float = 0.0
-        var southR: Float = 0.0
-        
-        var diff: Float = 0.0 // Center point - renme to center
-        
-        if (mode == 1) {
-            
-            if (diffL <= 0) {
-                if ([diffN, diffNL, diffSL, diffS].max()! > 0) {
-                    left = ([diffN, diffNL, diffSL, diffS].max()!) / 2
+            // How many bridges in row?
+            var count: Float = 1
+            var countLeft: Float = 0
+            var _x = x - 1
+            while (_x >= 0) {
+                if (gameRun.gameSurface3D[y,_x,z] == gameRun.gameSurface3D[y,x,z]) {
+                    _x -= 1
+                    count += 1
+                    countLeft += 1
                 } else {
-                    left = 0.0
-                }
-            } else {
-                if  ([diffN, diffNL, diffSL, diffS].max()! > diffL) {
-                    left = ([diffN, diffNL, diffSL, diffS].max()! - diffL) / 2 + diffL
-                } else {
-                    left = diffL
+                    break
                 }
             }
             
-            if (diffR <= 0) {
-                if ([diffN, diffNR, diffSR, diffS].max()! > 0) {
-                    right = ([diffN, diffNR, diffSR, diffS].max()!) / 2
+            _x = x + 1
+            while (_x < gameRun.gameSurface3D.columns) {
+                if (gameRun.gameSurface3D[y,_x,z] == gameRun.gameSurface3D[y,x,z]) {
+                    _x += 1
+                    count += 1
                 } else {
-                    right = 0.0
-                }
-            } else {
-                if ([diffN, diffNR, diffSR, diffS].max()! > diffR) {
-                    right = ([diffN, diffNR, diffSR, diffS].max()! - diffR) / 2 + diffR
-                } else {
-                    right = diffR
+                    break
                 }
             }
             
-            
-            if (diffN <= 0) {
-                if ([diffL, diffNL, diffR, diffNR].max()! > 0) {
-                    north = ([diffL, diffNL, diffR, diffNR].max()!) / 2
-                } else {
-                    north = 0.0
-                }
-            } else {
-                if ([diffL, diffNL, diffR, diffNR].max()! > diffN) {
-                    north = ([diffL, diffNL, diffR, diffNR].max()! - diffN) / 2 + diffN
-                } else {
-                    north = diffN
-                }
-            }
-            
-            if (diffS <= 0) {
-                if ([diffL, diffSL, diffR, diffSR].max()! > 0) {
-                    south = ([diffL, diffSL, diffR, diffSR].max()!) / 2
-                } else {
-                    south = 0.0
-                }
-            } else {
-                if ([diffL, diffSL, diffR, diffSR].max()! > diffS) {
-                    south = ([diffL, diffSL, diffR, diffSR].max()! - diffS) / 2 + diffS
-                } else {
-                    south = diffS
-                }
-                
-            }
-            
-            // Center point
-            
-            let diffMax: Float = [diffN, diffS, diffR, diffL, diffNL, diffSL, diffSR, diffNR].max()!
-            
-            if(diffMax != 0) { diff = diffMax / 2 }
-            if(diffMax < 0) { diff = -diffMax / 2 } // Pointy end to highest peak
-            
-            northR = [diffN, diffR, diffNR, 0].max()!
-            northL = [diffN, diffL, diffNL, 0].max()!
-            southL = [diffS, diffL, diffSL, 0].max()!
-            southR = [diffS, diffR, diffSR, 0].max()!
-            
-        } else if (mode == 2) {
-            
-            diff = 0.0
-            
-            // Corner needs to be the lowest
-            northR = [diffN, diffR, diffNR, 0].min()!
-            northL = [diffN, diffL, diffNL, 0].min()!
-            southL = [diffS, diffL, diffSL, 0].min()!
-            southR = [diffS, diffR, diffSR, 0].min()!
-            
-            
-            // Go down and meet the lower level
-            if (diffR < 0) {right = diffR}
-            if (diffL < 0) {left = diffL}
-            if (diffN < 0) {north = diffN}
-            if (diffS < 0) {south = diffS}
+            diffN = (countLeft + 0.5) / count
+            diffS = diffN
+            diffC = diffN
+            diffW = (countLeft) / count
+            diffNW = diffW
+            diffSW = diffW
+            diffE = (countLeft + 1.0) / count
+            diffNE = diffE
+            diffSE = diffE
+        
+            debugPrint("Bridges in row: \(count) \(countLeft)")
+            debugPrint("East: \(diffE)")
             
         }
         
-        gameRun.surfaceMatrix[y,x].center = (_h + diff)
-        gameRun.surfaceMatrix[y,x].northR = (_h + northR)
-        gameRun.surfaceMatrix[y,x].north = (_h + north)
-        gameRun.surfaceMatrix[y,x].northL = (_h + northL)
-        gameRun.surfaceMatrix[y,x].left = (_h + left)
-        gameRun.surfaceMatrix[y,x].southL = (_h + southL)
-        gameRun.surfaceMatrix[y,x].south = (_h + south)
-        gameRun.surfaceMatrix[y,x].southR = (_h + southR)
-        gameRun.surfaceMatrix[y,x].right = (_h + right)
-        
-    }
-    
-    
-    // mode = 0, raise up surface around
-    // mode = 1, raise up only the one brick
-    // mode = height multiplier (default 1.0)
-    
-    func createSurface(x: Int, y: Int, mul: Float) {
-   
         let indices: [UInt16] = [
             0, 1, 2,
             2, 3, 0,
@@ -1033,88 +665,121 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         
         var vertices: [SCNVector3] = []
         
+        let mul: Float = 2.0
         
-        // Debug entry
-        let color: UIColor = UIColor.blue
-        /*
-         if (_h == 8) {
-         color = UIColor.red
-         }
-         */
+        vertices.append(SCNVector3(1, diffC * mul, 1))
+        vertices.append(SCNVector3(2, diffNE * mul, 0))
+        vertices.append(SCNVector3(1, diffN * mul, 0))
+        vertices.append(SCNVector3(0, diffNW * mul, 0))
+        vertices.append(SCNVector3(0, diffW * mul, 1))
+        vertices.append(SCNVector3(0, diffSW * mul, 2))
+        vertices.append(SCNVector3(1, diffS * mul, 2))
+        vertices.append(SCNVector3(2, diffSE * mul, 2))
+        vertices.append(SCNVector3(2, diffE * mul, 1))
         
-        var northS: Float = 0.0
-        var southS: Float = 0.0
-        var leftS: Float = 0.0
-        var rightS: Float = 0.0
         
-        // Apply smoothing to verices
-        if (gameRun.surfaceMatrix[y,x].smooth ==  true) {
-            
-            if (y > 0) {
-                if (gameRun.surfaceMatrix[y - 1,x].smooth ==  true &&
-                    gameRun.surfaceMatrix[y - 1,x].center == gameRun.surfaceMatrix[y,x].center) {
-                    northS = -0.5
-                }
-            }
-           
-            if (y < gameRun.gameSurface.rows - 1) {
-                if (gameRun.surfaceMatrix[y + 1,x].smooth ==  true &&
-                    gameRun.surfaceMatrix[y + 1,x].center == gameRun.surfaceMatrix[y,x].center) {
-                    southS = -0.5
-                }
-                
-            }
-            
-            if (x > 0) {
-                if (gameRun.surfaceMatrix[y,x - 1].smooth ==  true &&
-                    gameRun.surfaceMatrix[y, x - 1].center == gameRun.surfaceMatrix[y,x].center) {
-                    leftS = -0.5
-                }
-            }
-            
-            if (x < gameRun.gameSurface.columns - 1) {
-                
-                if (gameRun.surfaceMatrix[y,x + 1].smooth ==  true &&
-                    gameRun.surfaceMatrix[y,x + 1].center == gameRun.surfaceMatrix[y,x].center) {
-                    rightS = -0.5
-                }
-            }
- 
-            vertices.append(SCNVector3(1, (gameRun.surfaceMatrix[y,x].center - 0.5) * mul, 1))
-            
-        } else {
-            vertices.append(SCNVector3(1, gameRun.surfaceMatrix[y,x].center * mul, 1))
-        }
-        
-        vertices.append(SCNVector3(2, gameRun.surfaceMatrix[y,x].northR * mul, 0))
-        vertices.append(SCNVector3(1, (gameRun.surfaceMatrix[y,x].north + northS) * mul, 0))
-        vertices.append(SCNVector3(0, gameRun.surfaceMatrix[y,x].northL * mul, 0))
-        vertices.append(SCNVector3(0, (gameRun.surfaceMatrix[y,x].left + leftS) * mul, 1))
-        vertices.append(SCNVector3(0, gameRun.surfaceMatrix[y,x].southL * mul, 2))
-        vertices.append(SCNVector3(1, (gameRun.surfaceMatrix[y,x].south + southS) * mul, 2))
-        vertices.append(SCNVector3(2, gameRun.surfaceMatrix[y,x].southR * mul, 2))
-        vertices.append(SCNVector3(2, (gameRun.surfaceMatrix[y,x].right + rightS) * mul, 1))
+        let parentNode: SCNNode = SCNNode.init()
+        parentNode.name = "BridgeHubb"
         
         
         let source = SCNGeometrySource(vertices: vertices)
         let element = SCNGeometryElement(indices: indices, primitiveType: .triangles)
         let geometry = SCNGeometry(sources: [source], elements: [element])
-        geometry.materials.first?.diffuse.contents = color
-        geometry.materials.first?.locksAmbientWithDiffuse = true
+        geometry.materials = [gameBoardLayer[z].commmonMaterial]
         let geometryNode = SCNNode(geometry: geometry)
-        geometryNode.position = SCNVector3(Float(x)*2-1, 0, Float(y)*2-1)
+        geometryNode.position = SCNVector3(Float(x)*2-1, Float(z)*2, Float(y)*2-1)
         geometryNode.physicsBody = SCNPhysicsBody(type: .static, shape: nil)
         geometryNode.physicsBody!.collisionBitMask = CollisionTypes.all.rawValue
         geometryNode.castsShadow = false
-        geometryNode.name = "Floor"
-        gameBoardFloor.addChildNode(geometryNode)
+        geometryNode.name = "Bridge"
+        
+        parentNode.addChildNode(geometryNode)
+        gameBoardLayer[z].addChildNode(parentNode)
     }
     
-    func createPlane(x: Int, y: Int, xOff: Float, yOff: Float, zOff: Float, angles: SCNVector3, color: UIColor) -> SCNNode {
+    
+    func create3DSurfacePoint(y: Int, x: Int, z: Int) {
+        
+        let parentNode: SCNNode = SCNNode.init()
+        var geometryNode: SCNNode!
+        
+        parentNode.name = "WallHubb"
+        
+        // Should we create top wall?
+        if (z == (gameRun.gameSurface3D.height - 1)) { // Yes top of the world}
+            geometryNode = createPlane(x: x, y: y, z: z, xOff: 0.0, yOff: 2.0, zOff: 0.0, angles: SCNVector3(-Float.pi/2,0,0), color: UIColor.darkGray)
+            geometryNode.geometry?.materials = [gameBoardLayer[z].commmonMaterial]
+            geometryNode.name = "Wall"
+            parentNode.addChildNode(geometryNode)
+        } else if(gameRun.gameSurface3D[y,x,z+1] != 1) { // Nothing above
+            
+            geometryNode = createPlane(x: x, y: y, z: z, xOff: 0.0, yOff: 2.0, zOff: 0.0, angles: SCNVector3(-Float.pi/2,0,0), color: UIColor.darkGray)
+            geometryNode.geometry?.materials = [gameBoardLayer[z].commmonMaterial]
+            geometryNode.name = "Wall"
+            parentNode.addChildNode(geometryNode)
+        }
+        
+        // Should we create the south wall
+        if (y == (gameRun.gameSurface3D.rows - 1)) { // Last row
+            geometryNode = createPlane(x: x, y: y, z: z,xOff:0.0, yOff: 1.0, zOff: 1.0, angles: SCNVector3(0,0,0), color: UIColor.darkGray)
+            geometryNode.geometry?.materials = [gameBoardLayer[z].commmonMaterial]
+            geometryNode.name = "Wall"
+            parentNode.addChildNode(geometryNode)
+        } else if(gameRun.gameSurface3D[y+1,x,z] != 1) { // Nothing south
+            geometryNode = createPlane(x: x, y: y, z: z,xOff:0.0, yOff: 1.0, zOff: 1.0, angles: SCNVector3(0,0,0), color: UIColor.darkGray)
+            geometryNode.geometry?.materials = [gameBoardLayer[z].commmonMaterial]
+            geometryNode.name = "Wall"
+            parentNode.addChildNode(geometryNode)
+        }
+        
+        // Should we create north wall
+        if (y == 0) {
+            geometryNode = createPlane(x: x, y: y, z: z,xOff:0.0, yOff: 1.0, zOff: -1.0, angles: SCNVector3(0,Float.pi,0), color: UIColor.darkGray)
+            geometryNode.geometry?.materials = [gameBoardLayer[z].commmonMaterial]
+            geometryNode.name = "Wall"
+            parentNode.addChildNode(geometryNode)
+        } else if(gameRun.gameSurface3D[y-1,x,z] != 1) {
+            geometryNode = createPlane(x: x, y: y, z: z, xOff:0.0, yOff: 1.0, zOff: -1.0, angles: SCNVector3(0,Float.pi,0), color: UIColor.darkGray)
+            geometryNode.geometry?.materials = [gameBoardLayer[z].commmonMaterial]
+            geometryNode.name = "Wall"
+            parentNode.addChildNode(geometryNode)
+        }
+        
+        // Should we create left wall
+        if (x == 0) {
+            geometryNode = createPlane(x: x, y: y, z: z, xOff:-1.0, yOff: 1.0, zOff: 0.0, angles: SCNVector3(0,-Float.pi/2,0), color: UIColor.darkGray)
+            geometryNode.geometry?.materials = [gameBoardLayer[z].commmonMaterial]
+            geometryNode.name = "Wall"
+            parentNode.addChildNode(geometryNode)
+        } else if(gameRun.gameSurface3D[y,x-1,z] != 1) {
+            geometryNode = createPlane(x: x, y: y, z: z, xOff:-1.0, yOff: 1.0, zOff: 0.0, angles: SCNVector3(0,-Float.pi/2,0), color: UIColor.darkGray)
+            geometryNode.geometry?.materials = [gameBoardLayer[z].commmonMaterial]
+            geometryNode.name = "Wall"
+            parentNode.addChildNode(geometryNode)
+        }
+    
+        // Should we create right wall
+        if (x == (gameRun.gameSurface3D.columns - 1)) {
+            geometryNode = createPlane(x: x, y: y, z: z, xOff:1.0, yOff: 1.0, zOff: 0.0, angles: SCNVector3(0,Float.pi/2,0), color: UIColor.darkGray)
+            geometryNode.geometry?.materials = [gameBoardLayer[z].commmonMaterial]
+            geometryNode.name = "Wall"
+            parentNode.addChildNode(geometryNode)
+        } else if(gameRun.gameSurface3D[y,x+1,z] != 1) {
+            geometryNode = createPlane(x: x, y: y, z: z, xOff:1.0, yOff: 1.0, zOff: 0.0, angles: SCNVector3(0,Float.pi/2,0), color: UIColor.darkGray)
+            geometryNode.geometry?.materials = [gameBoardLayer[z].commmonMaterial]
+            geometryNode.name = "Wall"
+            parentNode.addChildNode(geometryNode)
+        }
+    
+        gameBoardLayer[z].addChildNode(parentNode)
+    }
+    
+          
+    func createPlane(x: Int, y: Int, z: Int, xOff: Float, yOff: Float, zOff: Float, angles: SCNVector3, color: UIColor) -> SCNNode {
         let geometry = SCNPlane(width: 2.0, height: 2.0)
         geometry.materials.first?.diffuse.contents = color
         let geometryNode = SCNNode(geometry: geometry)
-        geometryNode.position = SCNVector3(Float(x)*2 + xOff, yOff, Float(y)*2 + zOff)
+        geometryNode.position = SCNVector3(Float(x)*2 + xOff, yOff + Float(z)*2, Float(y)*2 + zOff)
         geometryNode.eulerAngles = angles
         geometryNode.physicsBody = SCNPhysicsBody(type: .static, shape: nil)
         geometryNode.physicsBody!.collisionBitMask = CollisionTypes.all.rawValue
@@ -1122,26 +787,14 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         return geometryNode
     }
 
-    func createRaisedFloor(x: Int, y: Int) {
-        let geometry = SCNPyramid(width: 2.0, height: 2.0, length: 2.0)
-        geometry.materials.first?.diffuse.contents = UIColor.blue
-        let geometryNode = SCNNode(geometry: geometry)
-        geometryNode.position = SCNVector3(Float(x)*2, 0.0, Float(y)*2)
-        geometryNode.physicsBody = SCNPhysicsBody(type: .static, shape: nil)
-        geometryNode.physicsBody!.collisionBitMask = CollisionTypes.all.rawValue
-        geometryNode.castsShadow = false
-        geometryNode.name = "Floor"
-        
-        gameBoardFloor.addChildNode(geometryNode)
-    }
     
-    func spawnBoxA(x: Int, y: Int) {
+    func spawnBoxA(x: Int, y: Int, z: Int) {
         
         let boxGeometry = SCNBox(width: 1.0, height: 1.0, length: 1.0, chamferRadius: 0.0)
         boxGeometry.materials.first?.diffuse.contents = UIColor.white
         
         let geometryNode = SCNNode(geometry: boxGeometry)
-        geometryNode.position = SCNVector3(Float(x)*2, 11, Float(y)*2)
+        geometryNode.position = SCNVector3(Float(x)*2, Float(z)*2, Float(y)*2)
         geometryNode.physicsBody = SCNPhysicsBody(type: .dynamic, shape: nil)
         geometryNode.physicsBody?.mass = 1.0
         geometryNode.physicsBody?.restitution = 0.25
@@ -1185,7 +838,8 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
             //playerNode.physicsBody!.allowsResting = false
             playerNode.name = "Player"
             
-            gameBoard.addChildNode(playerNode)
+            playerHolderNode.addChildNode(playerNode)
+            gameBoard.addChildNode(playerHolderNode)
         } else {
             // Reset player
             playerNode.physicsBody?.clearAllForces()
@@ -1196,7 +850,7 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
             // Add the camera
             cameraNode = SCNNode()
             cameraNode.camera = SCNCamera()
-            cameraNode.camera?.zFar = 50
+            cameraNode.camera?.zFar = 100
             cameraNode.camera?.zNear = 0
             cameraNode.position = SCNVector3(x: 0, y: 40, z: 0)
             cameraNode.eulerAngles = SCNVector3Make(-Float.pi/2, 0, 0)
@@ -1256,8 +910,20 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         cameraConstraint = SCNTransformConstraint(inWorldSpace: true, with: { (node, matrix) in
             
             let diffX: Float = self.playerNode.presentation.position.x - node.presentation.position.x
+            let diffY: Float = self.playerNode.presentation.position.y - node.presentation.position.y + self.cameraYDiff
+            let diffZ: Float = self.playerNode.presentation.position.z - node.presentation.position.z + 2
+            
+            let newMatrix = SCNMatrix4Translate(matrix, diffX, diffY, diffZ)
+            
+            return newMatrix
+        })
+        
+        // Constraint for keeping camera in a certain range from the player
+        cameraZoomConstraint = SCNTransformConstraint(inWorldSpace: true, with: { (node, matrix) in
+            
+            let diffX: Float = self.playerNode.presentation.position.x - node.presentation.position.x
             var diffY: Float = node.presentation.position.y - self.playerNode.presentation.position.y
-            let diffZ = self.playerNode.presentation.position.z - node.presentation.position.z
+            let diffZ = self.playerNode.presentation.position.z - node.presentation.position.z + 2
             
             if (diffY > 20) {
                 // Move a bit closer
@@ -1271,6 +937,9 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
                 // In range do nothing
                 diffY = 0
                 self.cameraOutOfBounds = false
+                self.moveBackToNormalCamera = true
+                self.cameraYDiff = node.presentation.worldPosition.y - self.playerNode.presentation.worldPosition.y
+
             }
             let newMatrix = SCNMatrix4Translate(matrix, diffX, diffY, diffZ)
             
@@ -1281,9 +950,10 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
         lightConstraint = SCNTransformConstraint(inWorldSpace: true, with: { (node, matrix) in
             
             let diffX: Float = self.playerNode.presentation.position.x + 2 - node.presentation.position.x
-            let diffZ = self.playerNode.presentation.position.z + 2 -  node.presentation.position.z
+            let diffY: Float = self.playerNode.presentation.position.y + 15 - node.presentation.position.y
+            let diffZ = self.playerNode.presentation.position.z + 2 -   node.presentation.position.z
             
-            let newMatrix = SCNMatrix4Translate(matrix, diffX, 0, diffZ)
+            let newMatrix = SCNMatrix4Translate(matrix, diffX, diffY, diffZ)
             
             return newMatrix
         })
@@ -1312,15 +982,58 @@ class GameViewController: UIViewController, SCNPhysicsContactDelegate {
     }
 }
 
+var previousHitResults: [SCNNode] = []
+var previousPlayerY: Int = 0
+
 extension GameViewController: SCNSceneRendererDelegate {
     
     func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
         
+        // Grab the velocity for use elsewhere
+        playerVelocity =  (playerNode.physicsBody?.velocity)!
+        
+        // Check player Y position
+        
+        // To low?
         if(playerNode.presentation.position.y < -8) {
             // Player dropped below sufrace, respawn
             spawnPlayer(x: gameRun.getPlayerSpawnPosition().x, y: gameRun.getPlayerSpawnPosition().y)
-            
+        // To high?
+        } else if (playerNode.presentation.position.y > 40) {
+            debugPrint("stop")
+            playerNode.physicsBody?.clearAllForces()
         }
+        
+        // LoS to player, make stuff transparent in-between
+        let hitResults: [SCNHitTestResult] = scnScene.physicsWorld.rayTestWithSegment(from: cameraNode.presentation.worldPosition, to: playerNode.presentation.worldPosition, options: [SCNPhysicsWorld.TestOption.searchMode: SCNPhysicsWorld.TestSearchMode.all])
+        
+        var newHitResults: [SCNNode] = []
+        
+        // Add wall parent nodes for all nodes in LoS
+        for hit in hitResults {
+            if (hit.node.name == "Wall" || hit.node.name == "Bridge") {
+                if (!newHitResults.contains(hit.node.parent!)) {
+                    newHitResults.append(hit.node.parent!)
+                }
+            }
+        }
+        
+        // Make transparent if not already so (from last test)
+        for newHit in newHitResults {
+            if (!previousHitResults.contains(newHit)) {
+                newHit.opacity = 0.5
+            }
+        }
+        
+        // Remove transparency if no longer in LoS compared to last LoS test
+        for oldHit in previousHitResults {
+            if (!newHitResults.contains(oldHit)) {
+                oldHit.opacity = 1.0
+            }
+        }
+        
+        // Test physics hits
+        previousHitResults = newHitResults
         
         for node in hitBoxes {
             let color: UIColor = node.geometry?.materials.first?.diffuse.contents as! UIColor
@@ -1339,11 +1052,38 @@ extension GameViewController: SCNSceneRendererDelegate {
             scnView.isPlaying = false
         }
         
+        // If pinch has moved out of range, then it will slowly return
+        // After this we need to set back the normal camera
+        if(moveBackToNormalCamera) {
+            moveBackToNormalCamera = false
+            cameraNode.constraints = [cameraConstraint]
+        }
+        
+        // Update HUD if data has changed
         if (gameHUDInvalid) {
             gameHUDInvalid = false
             gameHUDWhiteLabel.text = String(gameRun.getWhiteCount())
             gameHUDRedLabel.text = String(gameRun.getRedCount())
             gameHUDMovesLabel.text = String(gameRun.getMoves())
+        }
+        
+        // Set the gameboard layer colors based on player Y position
+        // Further away = darker
+        let playerY: Float = playerNode.presentation.position.y / 2
+        if (playerY > 0) {
+            if (Int(playerY) != previousPlayerY) {
+                var layer: Float = 0.0
+                for node in gameBoardLayer {
+                    var diff: Float = playerY - layer
+                    if (diff < 0) {diff = -diff}
+                    if (diff == 0) {diff = 1}
+                    if (diff > 10) {diff = 10}
+                    
+                    node.commmonMaterial.diffuse.contents = UIColor.init(red: 0, green: 0, blue: (CGFloat(1 - (diff/10)/1.5)), alpha: 1.0)
+                    layer += 1
+                }
+                previousPlayerY = Int(playerY)
+            }
         }
     }
 }
